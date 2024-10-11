@@ -1,94 +1,181 @@
+import React, { useEffect, useState } from 'react';
+import axiosInstance from '../../utils/axiosConfig';
+
 export default function Proveedores() {
-    // Lista de proveedores (puedes obtener esto de una API o base de datos)
-    const proveedores = [
-      {
-        id: 1,
-        nombre: 'Proveedor A',
-        descripcion: 'Proveedor especializado en la marca Nike.',
-        contacto: 'contacto@proveedora.com',
-        imagen: 'https://via.placeholder.com/150', // Imagen de prueba
-      },
-      {
-        id: 2,
-        nombre: 'Proveedor B',
-        descripcion: 'Proveedor de en la marca Adidas.',
-        contacto: 'contacto@proveedorb.com',
-        imagen: 'https://via.placeholder.com/150',
-      },
-      {
-        id: 3,
-        nombre: 'Proveedor C',
-        descripcion: 'Proveedor especializado en la marca Reebook.',
-        contacto: 'contacto@proveedorc.com',
-        imagen: 'https://via.placeholder.com/150',
-      },
-      // Puedes agregar más proveedores aquí
-    ];
-  
-    return (
-      <div className="min-h-screen dark:bg-gray-600 p-6">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Proveedores</h1>
-  
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+  const [showModal, setShowModal] = useState(false); // Estado para controlar la visibilidad del modal
+  const [nombre, setNombre] = useState('');
+  const [ruc, setRuc] = useState('');
+  const [contacto, setContacto] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [proveedores, setProveedores] = useState([]);
 
-<div class="max-w-l bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-    <a href="#">
-        <img class="rounded-t-lg" src="/docs/images/blog/image-1.jpg" alt="" />
-    </a>
-    <div class="p-5">
-        <a href="#">
-            <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Proveedor A</h5>
-        </a>
-        <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Proveedor especializado en la marca Nike</p>
-        <a href="#" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-            Read more
-             <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
-            </svg>
-        </a>
-    </div>
-</div>
+  // Función para manejar el envío del formulario
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
+    try {
+      const response = await axiosInstance.post('gestion/proveedores/', {
+        nombre,
+        ruc,
+        contacto,
+        direccion,
+        estado: 1, // Estado por defecto
+      });
 
-<div class="max-w-l bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-    <a href="#">
-        <img class="rounded-t-lg" src="/docs/images/blog/image-1.jpg" alt="" />
-    </a>
-    <div class="p-5">
-        <a href="#">
-            <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Proveedor B</h5>
-        </a>
-        <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Proveedor de en la marca Adidas.</p>
-        <a href="#" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-            Read more
-             <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
-            </svg>
-        </a>
-    </div>
-</div>
+      // Actualiza la lista de proveedores agregando el nuevo
+      setProveedores([...proveedores, response.data]);
 
+      setSuccess('Proveedor agregado exitosamente');
+      setError('');
+      setShowModal(false); // Oculta el modal tras éxito
+      setNombre('');
+      setRuc('');
+      setContacto('');
+      setDireccion('');
+    } catch (error) {
+      setError('Error al agregar el proveedor. Intenta de nuevo.');
+      setSuccess('');
+    }
+  };
 
-<div class="max-w-l bg-white border border-gray-200 rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
-    <a href="#">
-        <img class="rounded-t-lg" src="/docs/images/blog/image-1.jpg" alt="" />
-    </a>
-    <div class="p-5">
-        <a href="#">
-            <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Proveedor C</h5>
-        </a>
-        <p class="mb-3 font-normal text-gray-700 dark:text-gray-400">Proveedor especializado en la marca Reebook.</p>
-        <a href="#" class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-            Read more
-             <svg class="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
-            </svg>
-        </a>
-    </div>
-</div>
+  // Fetch de los proveedores al cargar el componente
+  useEffect(() => {
+    const fetchProveedores = async () => {
+      try {
+        const response = await axiosInstance.get('gestion/proveedores/');
+        setProveedores(response.data);
+      } catch (error) {
+        console.error('Error fetching proveedores:', error);
+        setError('No se pudieron cargar los proveedores. Por favor, inténtalo de nuevo más tarde.');
+      }
+    };
+
+    fetchProveedores();
+  }, []);
+
+  return (
+    <div className="min-h-screen dark:bg-gray-500 p-6">
+      <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Proveedores</h1>
+      {error && <p className="text-red-500 text-center">{error}</p>}
+      <button
+        type="button"
+        onClick={() => setShowModal(true)} // Mostrar el modal al hacer clic
+        className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+      >
+        + Agregar
+      </button>
+
+      {/* Modal */}
+      {showModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Agregar Nuevo Proveedor</h2>
+            {error && <p className="text-red-500">{error}</p>}
+            {success && <p className="text-green-500">{success}</p>}
+
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Nombre del Proveedor</label>
+                <input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">RUC</label>
+                <input
+                  type="text"
+                  value={ruc}
+                  onChange={(e) => setRuc(e.target.value)}
+                  maxLength={11}
+                  required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Contacto</label>
+                <input
+                  type="text"
+                  value={contacto}
+                  onChange={(e) => setContacto(e.target.value)}
+                  required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Dirección</label>
+                <input
+                  type="text"
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                  required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)} // Cerrar el modal sin guardar
+                  className="text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {proveedores.map((proveedor) => (
+          <div key={proveedor.id} className="max-w-l bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 row">
+            <a href="#">
+              <img
+                className="rounded-t-lg"
+                src="/images/Charlie.jpg"  // Aquí podrías poner la imagen del proveedor si tuvieras
+                alt={proveedor.nombre}
+              />
+            </a>
+            <div className="p-5">
+              <a href="#">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {proveedor.nombre}
+                </h5>
+              </a>
+              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                {proveedor.contacto}
+              </p>
+              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                Dirección: {proveedor.direccion}
+              </p>
+              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                RUC: {proveedor.ruc}
+              </p>
+              <a
+                href="#"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              >
+                Leer más
+                <svg className="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 5h12m0 0L9 1m4 4L9 9" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        ))}
       </div>
-    );
-  }
-  
+    </div>
+  );
+}
