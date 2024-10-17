@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 
 export default function Solicitudes() {
+  const fechaActual = new Date().toISOString().split('T')[0];
   const [showModal, setShowModal] = useState(false);
   const [stand, setStand] = useState('');
-  const [fechaSolicitud, setFechaSolicitud] = useState('');
+  const [fechaSolicitud, setFechaSolicitud] = useState(fechaActual);
   const [productoId, setProductoId] = useState(''); // Para manejar el producto actual seleccionado
   const [cantidad, setCantidad] = useState(''); // Para manejar la cantidad actual seleccionada
   const [productosSeleccionados, setProductosSeleccionados] = useState([]); // Productos seleccionados con cantidades
@@ -18,10 +19,16 @@ export default function Solicitudes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    console.log({
+      stand_id: stand, // Este debería ser el ID del stand
+      fecha_solicitud: fechaSolicitud,
+      estado: 1,
+    });
+
     try {
       // Crear la solicitud
       const solicitudResponse = await axiosInstance.post('gestion/solicitudes/', {
-        stand,
+        stand_id: stand, // Aquí cambiamos para enviar solo el stand_id
         fecha_solicitud: fechaSolicitud,
         estado: 1,
       });
@@ -30,7 +37,7 @@ export default function Solicitudes() {
 
       // Crear los DetalleSolicitud asociados a la solicitud
       const detallesPromises = productosSeleccionados.map((detalle) =>
-        axiosInstance.post('gestion/detalles-solicitud/', {
+        axiosInstance.post('gestion/detalles_solicitud/', {
           solicitud: solicitudId,
           producto: detalle.productoId,
           cantidad: detalle.cantidad,
@@ -61,20 +68,38 @@ export default function Solicitudes() {
     if (productoId && cantidad) {
       // Encontrar el producto en la lista de productos por su ID
       const productoSeleccionado = productos.find((p) => p.id === parseInt(productoId));
-
+  
       if (productoSeleccionado) {
-        setProductosSeleccionados([
-          ...productosSeleccionados,
-          { productoId, cantidad, nombre: productoSeleccionado.nombre },
-        ]);
+        // Validar si la cantidad no excede el stock disponible
+        if (parseInt(cantidad) > productoSeleccionado.stock_total) {
+          setError(`La cantidad deseada excede el stock disponible. Solo hay ${productoSeleccionado.stock_total} unidades disponibles.`);
+        } else {
+          // Si la cantidad es válida, agregar el producto
+          setProductosSeleccionados([
+            ...productosSeleccionados,
+            {
+              productoId,
+              cantidad,
+              nombre: productoSeleccionado.nombre,
+              codigo: productoSeleccionado.codigo,  // Incluir código
+              talla: productoSeleccionado.talla     // Incluir talla
+            },
+          ]);
+          // Limpiar después de agregar
+          setProductoId('');
+          setCantidad('');
+          setError(''); // Limpiar cualquier error anterior
+        }
       }
-
-      // Limpiar después de agregar
-      setProductoId('');
-      setCantidad('');
     } else {
       setError('Por favor, selecciona un producto y la cantidad.');
     }
+  };
+
+  const eliminarProducto = (index) => {
+    const productosActualizados = [...productosSeleccionados];
+    productosActualizados.splice(index, 1); // Eliminar producto por índice
+    setProductosSeleccionados(productosActualizados);
   };
 
   // Fetch de stands y productos
@@ -97,6 +122,17 @@ export default function Solicitudes() {
       }
     };
 
+    const fetchSolicitudes = async () => {
+      try {
+        const response = await axiosInstance.get('gestion/solicitudes/');
+        setSolicitudes(response.data);
+      } catch (error) {
+        console.error('Error fetching Solicitudes:', error);
+        setError('No se pudieron cargar las Solicitudes. Por favor, inténtalo de nuevo más tarde.');
+      }
+    };
+
+    fetchSolicitudes();
     fetchStands();
     fetchProductos();
   }, []);
@@ -116,7 +152,7 @@ export default function Solicitudes() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl">
             <h2 className="text-2xl font-bold mb-4">Agregar Nueva Solicitud</h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
@@ -148,31 +184,32 @@ export default function Solicitudes() {
                   required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Producto</label>
+                <br></br>
+              <div className="flex space-x-4">
                 <select
                   value={productoId}
                   onChange={(e) => setProductoId(e.target.value)}
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="block w-3/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 >
                   <option value="">Seleccionar Producto</option>
                   {productos.map((producto) => (
                     <option key={producto.id} value={producto.id}>
-                      {producto.nombre}
+                      {producto.codigo} - {producto.nombre} - {producto.talla}
                     </option>
                   ))}
                 </select>
+
                 <input
                   type="number"
                   value={cantidad}
                   onChange={(e) => setCantidad(e.target.value)}
                   placeholder="Cantidad"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
+              </div>
+
+              
+
                 <button
                   type="button"
                   onClick={agregarProducto}
@@ -184,18 +221,32 @@ export default function Solicitudes() {
 
               {/* Tabla de productos seleccionados */}
               <div className="mb-4">
+                {error && <p className="text-red-500">{error}</p>}
                 <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                   <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
                       <th scope="col" className="px-6 py-3">Producto</th>
+                      <th scope="col" className="px-6 py-3">Código</th>
+                      <th scope="col" className="px-6 py-3">Talla</th>
                       <th scope="col" className="px-6 py-3">Cantidad</th>
+                      <th scope="col" className="px-6 py-3">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productosSeleccionados.map((detalle, index) => (
                       <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                         <td className="px-6 py-4">{detalle.nombre}</td>
+                        <td className="px-6 py-4">{detalle.codigo}</td>
+                        <td className="px-6 py-4">{detalle.talla}</td>
                         <td className="px-6 py-4">{detalle.cantidad}</td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => eliminarProducto(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -235,6 +286,7 @@ export default function Solicitudes() {
           </div>
         ))}
       </div>
+
     </div>
   );
 }
