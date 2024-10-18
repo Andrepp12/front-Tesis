@@ -28,9 +28,9 @@ export default function Dev_Solicitudes() {
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
-      // Crear el devolucion
+      // Crear la devolución
       const devolucionResponse = await axiosInstance.post('gestion/devoluciones/', {
         solicitud_id: solicitud,
         razon,
@@ -38,35 +38,56 @@ export default function Dev_Solicitudes() {
         fecha_devolucion: fechaDevolucion,
         estado: 1,
       });
-
+  
       const devolucionId = devolucionResponse.data.id;
-
-      // Crear los DetalleDevolucion asociados al devolucion
-      const detallesPromises = productosSeleccionados.map((detalle) =>
-        axiosInstance.post('gestion/detalles_devolucion/', {
-          devolucion: devolucionId,
-          producto_id: detalle.productoId,
-          cantidad: detalle.cantidad,
-          descripcion: detalle.descripcionDetalle,
-          estado: 1,
-        })
-      );
-
-      // Ejecutar todas las promesas
+  
+      // Crear los DetalleDevolucion asociados a la devolución y actualizar el stock de los productos
+      const detallesPromises = productosSeleccionados.map(async (detalle) => {
+        try {
+          // Registrar el detalle de la devolución
+          const response = await axiosInstance.post('gestion/detalles_devolucion/', {
+            devolucion: devolucionId,
+            producto_id: detalle.productoId,
+            cantidad: detalle.cantidad,
+            descripcion: detalle.descripcionDetalle,
+            estado: 1,
+          });
+  
+          // Obtener el producto para actualizar su stock
+          const productoResponse = await axiosInstance.get(`gestion/productos/${detalle.productoId}/`);
+          const producto = productoResponse.data;
+  
+          // Asegurarse de que las operaciones son numéricas
+          const nuevoStockAlmacen = Number(producto.stock_almacen) + Number(detalle.cantidad);
+  
+          // Actualizar el stock del producto
+          await axiosInstance.patch(`gestion/productos/${detalle.productoId}/`, {
+            stock_almacen: nuevoStockAlmacen,
+          });
+  
+          return response.data;
+        } catch (error) {
+          console.error('Error al registrar el detalle o actualizar el stock:', error);
+          throw error; // Re-lanza el error para ser capturado por Promise.all
+        }
+      });
+  
+      // Ejecutar todas las promesas de los detalles
       await Promise.all(detallesPromises);
-
+  
       // Actualizar la lista de devoluciones
       setDevoluciones([...devoluciones, devolucionResponse.data]);
-
-      setSuccess('Devolucion y productos agregados exitosamente');
+  
+      setSuccess('Devolución y productos agregados exitosamente');
       setError('');
       setShowModal(false); // Cerrar el modal
       resetForm();
     } catch (error) {
-      setError('Error al agregar el devolucion. Intenta de nuevo.');
+      setError('Error al agregar la devolución. Intenta de nuevo.');
       setSuccess('');
     }
   };
+  
 
   const handleEliminarDevolucion = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta devolucion?')) {
@@ -321,7 +342,7 @@ export default function Dev_Solicitudes() {
                           <td className="px-6 py-4">{detalle.codigo}</td>
                           <td className="px-6 py-4">{detalle.talla}</td>
                           <td className="px-6 py-4">{detalle.cantidad}</td>
-                          <td className="px-6 py-4">{detalle.descripcion}</td>
+                          <td className="px-6 py-4">{detalle.descripcionDetalle}</td>
                           <td className="px-6 py-4">
                             <button
                               onClick={() => eliminarProducto(index)}
@@ -390,7 +411,7 @@ export default function Dev_Solicitudes() {
             {devolucion.estado === 1 ? 'Pendiente' : devolucion.estado === 2 ? 'Recibido' : 'Cancelado'}
           </td>
           <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.descripcion}
+            {devolucion.descripcionDetalle}
           </td>
           <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
             {devolucion.solicitud ? devolucion.solicitud.id : 'N/A'}

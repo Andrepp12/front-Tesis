@@ -26,9 +26,9 @@ export default function Dev_Ventas() {
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
-      // Crear el devolucion
+      // Crear la devolución
       const devolucionResponse = await axiosInstance.post('gestion/devoluciones/', {
         boleta,
         razon,
@@ -36,12 +36,10 @@ export default function Dev_Ventas() {
         fecha_devolucion: fechaDevolucion,
         estado: 1,
       });
-
+  
       const devolucionId = devolucionResponse.data.id;
-      console.log('ID de la devolución creada:', devolucionId);
-      console.log('ID de la devolución creada:', cantidad);
-
-      // Crear los DetalleDevolucion asociados al devolucion
+  
+      // Crear los DetalleDevolucion asociados a la devolución y actualizar el stock de los productos
       const detallesPromises = productosSeleccionados.map(async (detalle) => {
         try {
           console.log('Enviando detalle:', {
@@ -51,7 +49,8 @@ export default function Dev_Ventas() {
             descripcion: detalle.descripcionDetalle,
             estado: 1,
           });
-          
+  
+          // Registrar el detalle de la devolución
           const response = await axiosInstance.post('gestion/detalles_devolucion/', {
             devolucion: devolucionId,
             producto_id: detalle.productoId,
@@ -59,35 +58,47 @@ export default function Dev_Ventas() {
             descripcion: detalle.descripcionDetalle,
             estado: 1,
           });
-      
+  
           console.log('Detalle registrado correctamente:', response.data);
+  
+          // Obtener el producto actual para actualizar su stock
+          const productoResponse = await axiosInstance.get(`gestion/productos/${detalle.productoId}/`);
+          const producto = productoResponse.data;
+  
+          // Asegurarse de que las operaciones son numéricas
+          const nuevoStockAlmacen = Number(producto.stock_almacen) + Number(detalle.cantidad);
+          const nuevoStockTotal = Number(producto.stock_total) + Number(detalle.cantidad);
+  
+          // Actualizar el stock del producto
+          await axiosInstance.patch(`gestion/productos/${detalle.productoId}/`, {
+            stock_almacen: nuevoStockAlmacen,
+            stock_total: nuevoStockTotal,
+          });
+  
+          console.log(`Stock actualizado para el producto ${producto.nombre}: ${nuevoStockAlmacen}`);
           return response.data;
         } catch (error) {
-          console.error('Error al registrar el detalle:', error.response?.data || error.message);
+          console.error('Error al registrar el detalle o actualizar el stock:', error);
           throw error; // Re-lanza el error para ser capturado por Promise.all
         }
       });
-
-      // Ejecutar todas las promesas
-      try {
-        await Promise.all(detallesPromises);
-        console.log('Todos los detalles registrados correctamente.');
-      } catch (error) {
-        console.error('Error al registrar los detalles:', error);
-      }
-
+  
+      // Ejecutar todas las promesas de los detalles
+      await Promise.all(detallesPromises);
+  
       // Actualizar la lista de devoluciones
       setDevoluciones([...devoluciones, devolucionResponse.data]);
-
-      setSuccess('Devolucion y productos agregados exitosamente');
+  
+      setSuccess('Devolución y productos agregados exitosamente');
       setError('');
       setShowModal(false); // Cerrar el modal
       resetForm();
     } catch (error) {
-      setError('Error al agregar el devolucion. Intenta de nuevo.');
+      setError('Error al agregar la devolución. Intenta de nuevo.');
       setSuccess('');
     }
   };
+  
 
   const handleEliminarDevolucion = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta devolucion?')) {
