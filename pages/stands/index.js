@@ -34,6 +34,19 @@ export default function Stands() {
     }
   };
 
+  const handleEliminarStand = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este Stand?')) {
+      try {
+        await axiosInstance.delete(`gestion/stands/${id}/`);
+        setStands(stands.filter((stand) => stand.id !== id));
+        setSuccess('Stand eliminado exitosamente');
+        setError('');
+      } catch (error) {
+        setError('Error al eliminar el Stand. Intenta de nuevo.');
+      }
+    }
+  };
+
   // Fetch de los stands al cargar el componente
   useEffect(() => {
     const fetchStands = async () => {
@@ -154,6 +167,7 @@ export default function Stands() {
                   </a>
                   <a
                     href="#"
+                    onClick={() => handleEliminarStand(stand.id)}
                     className="font-medium text-red-600 dark:text-red-500 hover:underline p-3"
                   >
                     Eliminar

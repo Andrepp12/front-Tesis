@@ -34,6 +34,19 @@ export default function Marcas() {
     }
   };
 
+  const handleEliminarMarca = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta marca?')) {
+      try {
+        await axiosInstance.delete(`gestion/marcas/${id}/`);
+        setMarcas(marcas.filter((marca) => marca.id !== id));
+        setSuccess('Marca eliminada exitosamente');
+        setError('');
+      } catch (error) {
+        setError('Error al eliminar la marca. Intenta de nuevo.');
+      }
+    }
+  };
+
   // Fetch de las marcas al cargar el componente
   useEffect(() => {
     const fetchMarcas = async () => {
@@ -154,6 +167,7 @@ export default function Marcas() {
                   </a>
                   <a
                     href="#"
+                    onClick={() => handleEliminarMarca(marca.id)}
                     className="font-medium text-red-600 dark:text-red-500 hover:underline p-3"
                   >
                     Eliminar

@@ -4,6 +4,7 @@ import axiosInstance from '../../utils/axiosConfig';
 export default function Solicitudes() {
   const fechaActual = new Date().toISOString().split('T')[0];
   const [showModal, setShowModal] = useState(false);
+  const [showDetallesModal, setShowDetallesModal] = useState(false);
   const [stand, setStand] = useState('');
   const [fechaSolicitud, setFechaSolicitud] = useState(fechaActual);
   const [productoId, setProductoId] = useState(''); // Para manejar el producto actual seleccionado
@@ -14,16 +15,18 @@ export default function Solicitudes() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [detallesSolicitud, setDetallesSolicitud] = useState([]);
+  const [solicitudSeleccionado, setSolicitudSeleccionado] = useState(null);
 
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log({
-      stand_id: stand, // Este debería ser el ID del stand
-      fecha_solicitud: fechaSolicitud,
-      estado: 1,
-    });
+    // console.log({
+    //   stand_id: stand, // Este debería ser el ID del stand
+    //   fecha_solicitud: fechaSolicitud,
+    //   estado: 1,
+    // });
 
     try {
       // Crear la solicitud
@@ -39,7 +42,7 @@ export default function Solicitudes() {
       const detallesPromises = productosSeleccionados.map((detalle) =>
         axiosInstance.post('gestion/detalles_solicitud/', {
           solicitud: solicitudId,
-          producto: detalle.productoId,
+          producto_id: detalle.productoId,
           cantidad: detalle.cantidad,
           estado: 1,
         })
@@ -61,6 +64,80 @@ export default function Solicitudes() {
       setError('Error al agregar la solicitud. Intenta de nuevo.');
       setSuccess('');
     }
+  };
+
+  const handleEliminarSolicitud = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta Solicitud?')) {
+      try {
+        await axiosInstance.delete(`gestion/solicitudes/${id}/`);
+        setSolicitudes(solicitudes.filter((solicitud) => solicitud.id !== id));
+        setSuccess('Solicitud eliminada exitosamente');
+        setError('');
+      } catch (error) {
+        setError('Error al eliminar la Solicitud. Intenta de nuevo.');
+      }
+    }
+  };
+
+  const actualizarEstadoSolicitud = async (solicitudId) => {
+    try {
+      // Actualizar el estado de la solicitud a 2 (aprobada)
+      const response = await axiosInstance.patch(`gestion/solicitudes/${solicitudId}/`, {
+        estado: 2,
+      });
+      
+      console.log('Estado actualizado:', response.data);
+      
+      // Obtener los detalles de la solicitud
+      const detallesResponse = await axiosInstance.get(`gestion/detalles_solicitud/solicitud/${solicitudId}/`);
+      const detallesSolicitud = detallesResponse.data;
+  
+      // Actualizar el stock de los productos en base a los detalles de la solicitud
+      for (let detalle of detallesSolicitud) {
+        const productoId = detalle.producto.id;
+        const cantidadSolicitada = detalle.cantidad;
+        
+        // Obtener el producto actual para obtener el stock_almacen actual
+        const productoResponse = await axiosInstance.get(`gestion/productos/${productoId}/`);
+        const producto = productoResponse.data;
+  
+        // Calcular el nuevo stock almacen
+        const nuevoStockAlmacen = producto.stock_almacen - cantidadSolicitada;
+  
+        // Actualizar el stock_almacen del producto
+        await axiosInstance.patch(`gestion/productos/${productoId}/`, {
+          stock_almacen: nuevoStockAlmacen,
+        });
+  
+        console.log(`Stock actualizado para el producto ${producto.nombre}: ${nuevoStockAlmacen}`);
+      }
+  
+      alert('Solicitud aprobada y stock actualizado exitosamente');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al actualizar el estado de la solicitud o el stock de los productos:', error);
+      alert('Hubo un error al intentar aprobar la solicitud y actualizar el stock.');
+    }
+  };
+  
+
+  const abrirModalDetalles = async (solicitudId) => {
+    setShowDetallesModal(true); // Mostrar el modal de detalles
+    setSolicitudSeleccionado(solicitudId); // Guardar el devolucion seleccionado
+
+    try {
+      const response = await axiosInstance.get(`gestion/detalles_solicitud/solicitud/${solicitudId}/`);
+      setDetallesSolicitud(response.data); // Guardar los detalles del devolucion
+    } catch (error) {
+      setError('Error al obtener los detalles de la solicitud.');
+    }
+  };
+
+  const cerrarModalDetalles = () => {
+    setShowDetallesModal(false);
+    setDetallesSolicitud([]);
+    setSolicitudSeleccionado(null);
+    setError('');
   };
 
   // Añadir el producto seleccionado a la lista de productos
@@ -274,19 +351,101 @@ export default function Solicitudes() {
       )}
 
       {/* Mostrar las solicitudes agregadas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        {solicitudes.map((solicitud) => (
-          <div key={solicitud.id} className="max-w-lg bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-5">
-              <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Solicitud {solicitud.id}</h5>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Fecha: {solicitud.fecha_solicitud}</p>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Estado: {solicitud.estado === 1 ? 'Pendiente' : solicitud.estado === 2 ? 'Aprobada' : 'Rechazada'}</p>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Stand: {solicitud.stand.nombre} ({solicitud.stand.ubicacion})</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+  <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" className="px-6 py-3">ID</th>
+        <th scope="col" className="px-6 py-3">Fecha de Solicitud</th>
+        <th scope="col" className="px-6 py-3">Estado</th>
+        <th scope="col" className="px-6 py-3">Stand</th>
+        <th scope="col" className="px-6 py-3">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {solicitudes.map((solicitud) => (
+        <tr
+          key={solicitud.id}
+          className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+        >
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+            {solicitud.id}
+          </td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+            {solicitud.fecha_solicitud}
+          </td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+            {solicitud.estado === 1 ? 'Pendiente' : solicitud.estado === 2 ? 'Aprobada' : 'Rechazada'}
+          </td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+            {solicitud.stand.nombre} ({solicitud.stand.ubicacion})
+          </td>
+          <td className="px-6 py-4">
+          {solicitud.estado === 1 && (
+            <button
+              onClick={() => actualizarEstadoSolicitud(solicitud.id)}
+              className="text-white bg-green-500 hover:bg-green-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
+            >
+              Atender
+            </button>
+          )}
+            <button
+              onClick={() => abrirModalDetalles(solicitud.id)}
+              className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
+            >
+              Ver Detalles
+            </button>
+            <button
+              onClick={() => handleEliminarSolicitud(solicitud.id)}
+              className="text-white bg-red-500 hover:bg-red-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
+            >
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 
+    
+      {showDetallesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
+            <h2 className="text-2xl font-bold mb-4">Detalles de la Solicitud {solicitudSeleccionado}</h2>
+
+            {/* Botón para cerrar el modal */}
+            <button
+              onClick={cerrarModalDetalles}
+              className="text-white bg-red-500 hover:bg-red-700 font-medium rounded-lg text-sm px-4 py-2 mb-4"
+            >
+              Cerrar
+            </button>
+
+            {/* Tabla de detalles del devolucion */}
+            {detallesSolicitud.length > 0 ? (
+              <table className="table-auto w-full">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2">Producto</th>
+                    <th className="px-4 py-2">Cantidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detallesSolicitud.map((solicitud) => (
+                    <tr key={solicitud.id}>
+                      <td className="border px-4 py-2">{solicitud.producto.nombre} - {solicitud.producto.codigo}</td>
+                      <td className="border px-4 py-2">{solicitud.cantidad}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No hay detalles para esta solicitud.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

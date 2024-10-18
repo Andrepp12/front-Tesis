@@ -67,6 +67,18 @@ export default function Existencias() {
     }
   };
   
+  const handleEliminarProducto = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+      try {
+        await axiosInstance.delete(`gestion/productos/${id}/`);
+        setProductos(productos.filter((producto) => producto.id !== id));
+        setSuccess('Producto eliminado exitosamente');
+        setError('');
+      } catch (error) {
+        setError('Error al eliminar el producto. Intenta de nuevo.');
+      }
+    }
+  };
 
   // Fetch de los productos y marcas al cargar el componente
   useEffect(() => {
@@ -165,7 +177,7 @@ export default function Existencias() {
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Stock en Almacén</label>
+                <label className="block text-sm font-medium text-gray-700">Stock</label>
                 <input
                   type="number"
                   value={stockAlmacen}
@@ -249,7 +261,10 @@ export default function Existencias() {
                 Talla
               </th>
               <th scope="col" className="px-6 py-3">
-                Cantidad
+                Stock Almacén
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Stock Total
               </th>
               <th scope="col" className="px-6 py-3">
                 Precio
@@ -285,6 +300,9 @@ export default function Existencias() {
                   {producto.talla}
                 </td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {producto.stock_almacen}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                   {producto.stock_total}
                 </td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
@@ -299,6 +317,7 @@ export default function Existencias() {
                   </a>
                   <a
                     href="#"
+                    onClick={() => handleEliminarProducto(producto.id)}
                     className="font-medium text-red-600 dark:text-red-500 hover:underline p-3"
                   >
                     Eliminar

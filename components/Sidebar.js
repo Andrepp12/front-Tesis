@@ -7,6 +7,11 @@ import Cookies from 'js-cookie';
 export default function Sidebar() {
   // Estado para controlar el colapso del menú
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
 
   // Función para manejar el clic y alternar el estado del menú
   const toggleDropdown = () => {
@@ -135,14 +140,52 @@ export default function Sidebar() {
                 </a>
               </li>
               <li>
-                <a href="/devoluciones/" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:dark:bg-gray-700 group">
-                  <svg className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
+                <button
+                  onClick={toggleMenu}
+                  className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                >
+                  <svg
+                    className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    viewBox="0 0 18 20"
+                  >
                     <path d="M17 5.923A1 1 0 0 0 16 5h-3V4a4 4 0 1 0-8 0v1H2a1 1 0 0 0-1 .923L.086 17.846A2 2 0 0 0 2.08 20h13.84a2 2 0 0 0 1.994-2.153L17 5.923ZM7 9a1 1 0 0 1-2 0V7h2v2Zm0-5a2 2 0 1 1 4 0v1H7V4Zm6 5a1 1 0 1 1-2 0V7h2v2Z" />
                   </svg>
                   <span className="flex-1 ms-3 whitespace-nowrap">Devoluciones</span>
-                </a>
+                </button>
+
+                {isOpen && (
+                  <ul className="pl-8 mt-2 space-y-2">
+                    <li>
+                      <a
+                        href="/devoluciones/dev_pedidos"
+                        className="text-gray-900 dark:text-white hover:underline"
+                      >
+                        Pedidos
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="/devoluciones/dev_solicitudes"
+                        className="text-gray-900 dark:text-white hover:underline"
+                      >
+                        Solicitudes
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        href="/devoluciones/dev_ventas"
+                        className="text-gray-900 dark:text-white hover:underline"
+                      >
+                       Ventas
+                      </a>
+                    </li>
+                  </ul>
+                )}
               </li>
-              <li>
+              {/* <li>
                 <a href="/devoluciones/" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:dark:bg-gray-700 group">
                   <svg className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
                     <path d="M17 5.923A1 1 0 0 0 16 5h-3V4a4 4 0 1 0-8 0v1H2a1 1 0 0 0-1 .923L.086 17.846A2 2 0 0 0 2.08 20h13.84a2 2 0 0 0 1.994-2.153L17 5.923ZM7 9a1 1 0 0 1-2 0V7h2v2Zm0-5a2 2 0 1 1 4 0v1H7V4Zm6 5a1 1 0 1 1-2 0V7h2v2Z" />
@@ -157,7 +200,7 @@ export default function Sidebar() {
                   </svg>
                   <span className="flex-1 ms-3 whitespace-nowrap">Cuenta</span>
                 </a>
-              </li>
+              </li> */}
               <li onClick={handleLogout}>
                 <a href="#" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:dark:bg-gray-700 group">
                   <svg className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
