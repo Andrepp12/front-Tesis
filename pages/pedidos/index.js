@@ -26,7 +26,7 @@ export default function Pedidos() {
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       // Crear el pedido
       const pedidoResponse = await axiosInstance.post('gestion/pedidos/', {
@@ -37,27 +37,67 @@ export default function Pedidos() {
         precio_total: calcularPrecioTotal(),
         estado: 1,
       });
-
+  
       const pedidoId = pedidoResponse.data.id;
-
-      // Crear los DetallePedido asociados al pedido
-      const detallesPromises = productosSeleccionados.map((detalle) =>
-        axiosInstance.post('gestion/detalles_pedido/', {
-          pedido: pedidoId,
-          producto_id: detalle.productoId,
-          cantidad: detalle.cantidad,
-          precio_unitario: detalle.precio_unitario,
-          estado: 1,
-        })
-      );
-
-      // Ejecutar todas las promesas
+  
+      // Crear los DetallePedido asociados al pedido y actualizar stock
+      const detallesPromises = productosSeleccionados.map(async (detalle) => {
+        try {
+          // Registrar el detalle del pedido
+          const response = await axiosInstance.post('gestion/detalles_pedido/', {
+            pedido: pedidoId,
+            producto_id: detalle.productoId,
+            cantidad: detalle.cantidad,
+            precio_unitario: detalle.precio_unitario,
+            estado: 1,
+          });
+  
+          console.log('Detalle registrado correctamente:', response.data);
+  
+          // Obtener el producto actual para actualizar su stock
+          const productoResponse = await axiosInstance.get(`gestion/productos/${detalle.productoId}/`);
+          const producto = productoResponse.data;
+  
+          // Asegurarse de que las operaciones son numéricas
+          const nuevoStockAlmacen = Number(producto.stock_almacen) + Number(detalle.cantidad);
+          const nuevoStockTotal = Number(producto.stock_total) + Number(detalle.cantidad);
+  
+          // Actualizar el stock del producto
+          await axiosInstance.patch(`gestion/productos/${detalle.productoId}/`, {
+            stock_almacen: nuevoStockAlmacen,
+            stock_total: nuevoStockTotal,
+          });
+  
+          console.log(`Stock actualizado para el producto ${producto.nombre}: ${nuevoStockAlmacen}`);
+  
+          // Registrar el movimiento
+          await axiosInstance.post('gestion/movimientos/', {
+            producto_id: detalle.productoId,
+            cantidad: detalle.cantidad,
+            valor_unitario: detalle.precio_unitario,
+            monto: detalle.cantidad * detalle.precio_unitario,
+            fecha_movimiento: fechaEntrega,
+            codigo_trans: pedidoId,
+            estado: 1,
+            tipo_mov_id: 2, // Tipo de movimiento 2
+          });
+  
+          console.log(`Movimiento registrado para el producto ${producto.nombre}`);
+          
+          return response.data;
+        } catch (error) {
+          console.error('Error al registrar el detalle, actualizar el stock o registrar el movimiento:', error);
+          throw error; // Re-lanza el error para ser capturado por Promise.all
+        }
+      });
+  
+      // Ejecutar todas las promesas de los detalles y actualización de stock
       await Promise.all(detallesPromises);
-
+  
       // Actualizar la lista de pedidos
       setPedidos([...pedidos, pedidoResponse.data]);
-
-      setSuccess('Pedido y productos agregados exitosamente');
+  
+      setSuccess('Pedido, productos y movimientos agregados exitosamente');
       setError('');
       setShowModal(false); // Cerrar el modal
       resetForm();
@@ -66,7 +106,8 @@ export default function Pedidos() {
       setSuccess('');
     }
   };
-
+  
+  
   const handleEliminarPedido = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este Pedido?')) {
       try {
@@ -370,26 +411,45 @@ export default function Pedidos() {
       )}
 
       {/* Mostrar los pedidos agregados */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        {pedidos.map((pedido) => (
-          <div key={pedido.id} className="max-w-lg bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-5">
-              <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Pedido {pedido.id}</h5>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Fecha de Pedido: {pedido.fecha_pedido}</p>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Fecha de Entrega: {pedido.fecha_entrega}</p>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Estado: {pedido.estado === 1 ? 'Pendiente' : pedido.estado === 2 ? 'Recibido' : 'Cancelado'}</p>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Proveedor: {pedido.proveedor.nombre}</p>
-              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Precio Total: {pedido.precio_total}</p>
-              {/* Botón para abrir el modal */}
-              <button
-                onClick={() => abrirModalDetalles(pedido.id)}
-                className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
-              >
-                Ver Detalles
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+  <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+    <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" className="px-6 py-3">ID</th>
+        <th scope="col" className="px-6 py-3">Fecha Pedido</th>
+        <th scope="col" className="px-6 py-3">Fecha Entrega</th>
+        <th scope="col" className="px-6 py-3">Estado</th>
+        <th scope="col" className="px-6 py-3">Proveedor</th>
+        <th scope="col" className="px-6 py-3">Precio Total</th>
+        <th scope="col" className="px-6 py-3">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {pedidos.map((pedido) => (
+        <tr
+          key={pedido.id}
+          className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+        >
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.id}</td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_pedido}</td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_entrega}</td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+            {pedido.estado === 1 ? 'Pendiente' : pedido.estado === 2 ? 'Recibido' : 'Cancelado'}
+          </td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.proveedor.nombre}</td>
+          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.precio_total}</td>
+          <td className="px-6 py-4">
+            <button
+              onClick={() => abrirModalDetalles(pedido.id)}
+              className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
+            >
+              Ver Detalles
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
         {/* Modal para mostrar los detalles del pedido */}
       {showDetallesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 
 export default function Proveedores() {
-  const [showModal, setShowModal] = useState(false); // Estado para controlar la visibilidad del modal
+  const [showModal, setShowModal] = useState(false);
   const [nombre, setNombre] = useState('');
   const [ruc, setRuc] = useState('');
   const [contacto, setContacto] = useState('');
@@ -10,32 +10,71 @@ export default function Proveedores() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [proveedores, setProveedores] = useState([]);
+  const [proveedorId, setProveedorId] = useState(null); // Null means "add mode"
 
-  // Función para manejar el envío del formulario
+  // Open modal for edit mode
+  const openEditModal = (proveedor) => {
+    setProveedorId(proveedor.id);
+    setNombre(proveedor.nombre);
+    setRuc(proveedor.ruc);
+    setContacto(proveedor.contacto);
+    setDireccion(proveedor.direccion);
+    setShowModal(true);
+  };
+
+  // Open modal for create mode
+  const openCreateModal = () => {
+    setProveedorId(null); // Reset ID for create mode
+    setNombre('');
+    setRuc('');
+    setContacto('');
+    setDireccion('');
+    setShowModal(true);
+  };
+
+  // Handle submitting for editing or creating a proveedor
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await axiosInstance.post('gestion/proveedores/', {
-        nombre,
-        ruc,
-        contacto,
-        direccion,
-        estado: 1, // Estado por defecto
-      });
+      let response;
+      if (proveedorId) {
+        // Update existing proveedor
+        response = await axiosInstance.patch(`gestion/proveedores/${proveedorId}/`, {
+          nombre,
+          ruc,
+          contacto,
+          direccion,
+          estado: 1,
+        });
 
-      // Actualiza la lista de proveedores agregando el nuevo
-      setProveedores([...proveedores, response.data]);
+        // Update provider list
+        setProveedores(
+          proveedores.map((proveedor) => (proveedor.id === proveedorId ? response.data : proveedor))
+        );
+        setSuccess('Proveedor actualizado exitosamente');
+      } else {
+        // Create new proveedor
+        response = await axiosInstance.post('gestion/proveedores/', {
+          nombre,
+          ruc,
+          contacto,
+          direccion,
+          estado: 1,
+        });
 
-      setSuccess('Proveedor agregado exitosamente');
+        setProveedores([...proveedores, response.data]);
+        setSuccess('Proveedor agregado exitosamente');
+      }
+
       setError('');
-      setShowModal(false); // Oculta el modal tras éxito
+      setShowModal(false);
       setNombre('');
       setRuc('');
       setContacto('');
       setDireccion('');
     } catch (error) {
-      setError('Error al agregar el proveedor. Intenta de nuevo.');
+      setError('Error al procesar el proveedor. Intenta de nuevo.');
       setSuccess('');
     }
   };
@@ -53,14 +92,13 @@ export default function Proveedores() {
     }
   };
 
-  // Fetch de los proveedores al cargar el componente
+  // Fetch the providers on component mount
   useEffect(() => {
     const fetchProveedores = async () => {
       try {
         const response = await axiosInstance.get('gestion/proveedores/');
         setProveedores(response.data);
       } catch (error) {
-        console.error('Error fetching proveedores:', error);
         setError('No se pudieron cargar los proveedores. Por favor, inténtalo de nuevo más tarde.');
       }
     };
@@ -74,17 +112,19 @@ export default function Proveedores() {
       {error && <p className="text-red-500 text-center">{error}</p>}
       <button
         type="button"
-        onClick={() => setShowModal(true)} // Mostrar el modal al hacer clic
+        onClick={openCreateModal}
         className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
       >
         + Agregar
       </button>
 
       {/* Modal */}
-      {showModal ? (
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Agregar Nuevo Proveedor</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              {proveedorId ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}
+            </h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
 
@@ -134,7 +174,7 @@ export default function Proveedores() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)} // Cerrar el modal sin guardar
+                  onClick={() => setShowModal(false)}
                   className="text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
                 >
                   Cancelar
@@ -143,23 +183,21 @@ export default function Proveedores() {
                   type="submit"
                   className="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
                 >
-                  Guardar
+                  {proveedorId ? 'Guardar Cambios' : 'Guardar'}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      ) : null}
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {proveedores.map((proveedor) => (
           <div key={proveedor.id} className="max-w-l bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 row">
             <div className="p-5">
-              <a href="#">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  {proveedor.nombre}
-                </h5>
-              </a>
+              <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                {proveedor.nombre}
+              </h5>
               <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
                 {proveedor.contacto}
               </p>
@@ -169,16 +207,18 @@ export default function Proveedores() {
               <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
                 RUC: {proveedor.ruc}
               </p>
-              <a
-                href="#"
+              <button
+                onClick={() => openEditModal(proveedor)}
+                className="text-blue-500"
+              >
+                Editar
+              </button>
+              <button
                 onClick={() => handleEliminarProveedor(proveedor.id)}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                className="text-red-500 ms-4"
               >
                 Eliminar
-                <svg className="rtl:rotate-180 w-3.5 h-3.5 ms-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
-                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 5h12m0 0L9 1m4 4L9 9" />
-                </svg>
-              </a>
+              </button>
             </div>
           </div>
         ))}

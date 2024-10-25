@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
+import Select from 'react-select';
 
 export default function Dev_Pedidos() {
   const fechaActual = new Date().toISOString().split('T')[0];
@@ -22,15 +23,22 @@ export default function Dev_Pedidos() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [detallesDevolucion, setDetallesDevolucion] = useState([]);
-  const [devolucionSeleccionado, setDevolucionSeleccionado] = useState(null);
+  const opcionesProductos = productos.map((producto) => ({
+    value: producto.id,
+    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
+  }));
+  
+  const handleSelectProducto = (selectedOption) => {
+    setProductoId(selectedOption ? selectedOption.value : '');
+  };
 
   
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
-      // Crear el devolucion
+      // Crear la devolución
       const devolucionResponse = await axiosInstance.post('gestion/devoluciones/', {
         pedido_id: pedido,
         razon,
@@ -38,22 +46,14 @@ export default function Dev_Pedidos() {
         fecha_devolucion: fechaDevolucion,
         estado: 1,
       });
-
+  
       const devolucionId = devolucionResponse.data.id;
       console.log('ID de la devolución creada:', devolucionId);
-      console.log('ID de la devolución creada:', cantidad);
-
-      // Crear los DetalleDevolucion asociados al devolucion
+  
+      // Crear los DetalleDevolucion asociados a la devolución y actualizar el stock
       const detallesPromises = productosSeleccionados.map(async (detalle) => {
         try {
-          console.log('Enviando detalle:', {
-            devolucion: devolucionId,
-            producto: detalle.productoId,
-            cantidad: detalle.cantidad,
-            descripcion: detalle.descripcionDetalle,
-            estado: 1,
-          });
-          
+          // Registrar el detalle de la devolución
           const response = await axiosInstance.post('gestion/detalles_devolucion/', {
             devolucion: devolucionId,
             producto_id: detalle.productoId,
@@ -61,35 +61,61 @@ export default function Dev_Pedidos() {
             descripcion: detalle.descripcionDetalle,
             estado: 1,
           });
-      
+  
           console.log('Detalle registrado correctamente:', response.data);
+  
+          // Obtener el producto actual para actualizar su stock
+          const productoResponse = await axiosInstance.get(`gestion/productos/${detalle.productoId}/`);
+          const producto = productoResponse.data;
+  
+          // Actualizar el stock del producto
+          const nuevoStockAlmacen = Number(producto.stock_almacen) - Number(detalle.cantidad);
+          const nuevoStockTotal = Number(producto.stock_total) - Number(detalle.cantidad);
+  
+          await axiosInstance.patch(`gestion/productos/${detalle.productoId}/`, {
+            stock_almacen: nuevoStockAlmacen,
+            stock_total: nuevoStockTotal,
+          });
+  
+          console.log(`Stock actualizado para el producto ${producto.nombre}: ${nuevoStockAlmacen}`);
+  
+          // Registrar el movimiento
+          await axiosInstance.post('gestion/movimientos/', {
+            producto_id: detalle.productoId,
+            cantidad: detalle.cantidad,
+            valor_unitario: producto.precio, // Valor unitario tomado del precio del producto
+            monto: detalle.cantidad * producto.precio, // Monto calculado
+            fecha_movimiento: fechaDevolucion,
+            codigo_trans: devolucionId,
+            estado: 1,
+            tipo_mov_id: 4, // Tipo de movimiento 4
+          });
+  
+          console.log(`Movimiento registrado para el producto ${producto.nombre}`);
+          
           return response.data;
         } catch (error) {
-          console.error('Error al registrar el detalle:', error.response?.data || error.message);
+          console.error('Error al registrar el detalle, actualizar el stock o registrar el movimiento:', error);
           throw error; // Re-lanza el error para ser capturado por Promise.all
         }
       });
-
-      // Ejecutar todas las promesas
-      try {
-        await Promise.all(detallesPromises);
-        console.log('Todos los detalles registrados correctamente.');
-      } catch (error) {
-        console.error('Error al registrar los detalles:', error);
-      }
-
+  
+      // Ejecutar todas las promesas de los detalles y actualización de stock
+      await Promise.all(detallesPromises);
+  
       // Actualizar la lista de devoluciones
       setDevoluciones([...devoluciones, devolucionResponse.data]);
-
-      setSuccess('Devolucion y productos agregados exitosamente');
+  
+      setSuccess('Devolución, productos y movimientos agregados exitosamente');
       setError('');
       setShowModal(false); // Cerrar el modal
       resetForm();
     } catch (error) {
-      setError('Error al agregar el devolucion. Intenta de nuevo.');
+      setError('Error al agregar la devolución. Intenta de nuevo.');
       setSuccess('');
     }
   };
+  
 
   const handleEliminarDevolucion = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta devolucion?')) {
@@ -225,7 +251,7 @@ export default function Dev_Pedidos() {
       {/* Modal para agregar devolucion */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
             <h2 className="text-2xl font-bold mb-4">Agregar Nueva Devolucion</h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
@@ -283,34 +309,34 @@ export default function Dev_Pedidos() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Productos</label>
                 <div className="flex space-x-4">
-                  <select
-                    value={productoId}
-                    onChange={(e) => setProductoId(e.target.value)}
-                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  >
-                    <option value="">Seleccionar Producto</option>
-                    {productos.map((producto) => (
-                      <option key={producto.id} value={producto.id}>
-                        {producto.codigo} - {producto.nombre} - {producto.talla}
-                      </option>
-                    ))}
-                  </select>
 
+                {/* Select para mostrar productos filtrados */}
+                <Select
+                    options={opcionesProductos}
+                    onChange={handleSelectProducto}
+                    placeholder="Buscar producto..."
+                    isClearable
+                    className="w-full"
+                  />
+                </div>
+                <br></br>
+                <div className="flex space-x-4">
                   <input
                     type="number"
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
                     placeholder="Cantidad"
-                    className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   <input
                     type="text"
                     value={descripcionDetalle}
                     onChange={(e) => setDescripcionDetalle(e.target.value)}
                     placeholder="Descripcion"
-                    className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-2/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                 </div>
+                
                 <button
                   type="button"
                   onClick={agregarProducto}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
+import Select from 'react-select';
 
 export default function Dev_Ventas() {
   const fechaActual = new Date().toISOString().split('T')[0];
@@ -21,6 +22,14 @@ export default function Dev_Ventas() {
   const [success, setSuccess] = useState('');
   const [detallesDevolucion, setDetallesDevolucion] = useState([]);
   const [devolucionSeleccionado, setDevolucionSeleccionado] = useState(null);
+  const opcionesProductos = productos.map((producto) => ({
+    value: producto.id,
+    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
+  }));
+  
+  const handleSelectProducto = (selectedOption) => {
+    setProductoId(selectedOption ? selectedOption.value : '');
+  };
 
   
   // Manejar el envío del formulario
@@ -65,20 +74,34 @@ export default function Dev_Ventas() {
           const productoResponse = await axiosInstance.get(`gestion/productos/${detalle.productoId}/`);
           const producto = productoResponse.data;
   
-          // Asegurarse de que las operaciones son numéricas
+          // Actualizar el stock del producto
           const nuevoStockAlmacen = Number(producto.stock_almacen) + Number(detalle.cantidad);
           const nuevoStockTotal = Number(producto.stock_total) + Number(detalle.cantidad);
   
-          // Actualizar el stock del producto
           await axiosInstance.patch(`gestion/productos/${detalle.productoId}/`, {
             stock_almacen: nuevoStockAlmacen,
             stock_total: nuevoStockTotal,
           });
   
           console.log(`Stock actualizado para el producto ${producto.nombre}: ${nuevoStockAlmacen}`);
+  
+          // Registrar el movimiento
+          await axiosInstance.post('gestion/movimientos/', {
+            producto_id: detalle.productoId,
+            cantidad: detalle.cantidad,
+            valor_unitario: producto.precio,
+            monto: detalle.cantidad * producto.precio,
+            fecha_movimiento: fechaDevolucion,
+            codigo_trans: devolucionId,
+            estado: 1,
+            tipo_mov_id: 3, // Tipo de movimiento 4 para devoluciones
+          });
+  
+          console.log(`Movimiento registrado para el producto ${producto.nombre}`);
+  
           return response.data;
         } catch (error) {
-          console.error('Error al registrar el detalle o actualizar el stock:', error);
+          console.error('Error al registrar el detalle, actualizar el stock o registrar el movimiento:', error);
           throw error; // Re-lanza el error para ser capturado por Promise.all
         }
       });
@@ -89,7 +112,7 @@ export default function Dev_Ventas() {
       // Actualizar la lista de devoluciones
       setDevoluciones([...devoluciones, devolucionResponse.data]);
   
-      setSuccess('Devolución y productos agregados exitosamente');
+      setSuccess('Devolución, productos y movimientos agregados exitosamente');
       setError('');
       setShowModal(false); // Cerrar el modal
       resetForm();
@@ -98,6 +121,7 @@ export default function Dev_Ventas() {
       setSuccess('');
     }
   };
+  
   
 
   const handleEliminarDevolucion = async (id) => {
@@ -224,7 +248,7 @@ export default function Dev_Ventas() {
       {/* Modal para agregar devolucion */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
             <h2 className="text-2xl font-bold mb-4">Agregar Nueva Devolucion</h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
@@ -278,18 +302,16 @@ export default function Dev_Ventas() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Productos</label>
                 <div className="flex space-x-4">
-                  <select
-                    value={productoId}
-                    onChange={(e) => setProductoId(e.target.value)}
-                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  >
-                    <option value="">Seleccionar Producto</option>
-                    {productos.map((producto) => (
-                      <option key={producto.id} value={producto.id}>
-                        {producto.codigo} - {producto.nombre} - {producto.talla}
-                      </option>
-                    ))}
-                  </select>
+                <Select
+                    options={opcionesProductos}
+                    onChange={handleSelectProducto}
+                    placeholder="Buscar producto..."
+                    isClearable
+                    className="w-full"
+                  />
+                </div>
+                <br></br>
+                <div className="flex space-x-4">
 
                   <input
                     type="number"

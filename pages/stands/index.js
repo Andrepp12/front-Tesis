@@ -4,12 +4,14 @@ import axiosInstance from '../../utils/axiosConfig';
 export default function Stands() {
   const [stands, setStands] = useState([]);
   const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(false); // Estado para controlar la visibilidad del modal
+  const [showModal, setShowModal] = useState(false);
   const [nombre, setNombre] = useState('');
   const [ubicacion, setUbicacion] = useState('');
   const [success, setSuccess] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false); // Saber si estás editando o creando
+  const [standId, setStandId] = useState(null); // Para guardar el ID del stand a editar
 
-  // Función para manejar el envío del formulario
+  // Función para manejar el envío del formulario para crear un nuevo stand
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -25,13 +27,60 @@ export default function Stands() {
 
       setSuccess('Stand agregado exitosamente');
       setError('');
-      setShowModal(false); // Oculta el modal tras éxito
-      setNombre('');
-      setUbicacion('');
+      closeModal(); // Oculta el modal tras éxito
     } catch (error) {
       setError('Error al agregar el stand. Intenta de nuevo.');
       setSuccess('');
     }
+  };
+
+  // Función para manejar el envío del formulario para editar un stand
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await axiosInstance.patch(`gestion/stands/${standId}/`, {
+        nombre,
+        ubicacion,
+        estado: 1, // Estado por defecto
+      });
+
+      // Actualizar el stand en el estado de stands
+      setStands(stands.map((stand) => (stand.id === standId ? response.data : stand)));
+
+      setSuccess('Stand actualizado exitosamente');
+      setError('');
+      closeModal(); // Oculta el modal tras éxito
+    } catch (error) {
+      setError('Error al actualizar el stand. Intenta de nuevo.');
+      setSuccess('');
+    }
+  };
+
+  // Abrir modal en modo creación
+  const openCreateModal = () => {
+    setIsEditMode(false); // Cambiar a modo crear
+    setNombre(''); // Limpiar los campos
+    setUbicacion('');
+    setShowModal(true); // Mostrar el modal
+  };
+
+  // Abrir modal en modo edición con los datos del stand
+  const openEditModal = (stand) => {
+    setIsEditMode(true); // Cambiar a modo editar
+    setStandId(stand.id); // Establecer el ID del stand a editar
+    setNombre(stand.nombre); // Rellenar los campos con los datos actuales
+    setUbicacion(stand.ubicacion);
+    setShowModal(true); // Mostrar el modal
+  };
+
+  // Función para cerrar el modal y resetear los campos
+  const closeModal = () => {
+    setShowModal(false);
+    setNombre('');
+    setUbicacion('');
+    setError('');
+    setSuccess('');
   };
 
   const handleEliminarStand = async (id) => {
@@ -68,21 +117,21 @@ export default function Stands() {
       {error && <p className="text-red-500 text-center">{error}</p>}
       <button
         type="button"
-        onClick={() => setShowModal(true)} // Mostrar el modal al hacer clic
+        onClick={openCreateModal} // Mostrar el modal para agregar un nuevo stand
         className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
       >
         + Agregar
       </button>
 
-      {/* Modal */}
+      {/* Modal para crear o editar */}
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Agregar Nuevo Stand</h2>
+            <h2 className="text-2xl font-bold mb-4">{isEditMode ? 'Editar Stand' : 'Agregar Nuevo Stand'}</h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={isEditMode ? handleEditSubmit : handleSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Nombre del Stand</label>
                 <input
@@ -107,7 +156,7 @@ export default function Stands() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)} // Cerrar el modal sin guardar
+                  onClick={closeModal} // Cerrar el modal sin guardar
                   className="text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
                 >
                   Cancelar
@@ -116,7 +165,7 @@ export default function Stands() {
                   type="submit"
                   className="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
                 >
-                  Guardar
+                  {isEditMode ? 'Guardar Cambios' : 'Guardar'}
                 </button>
               </div>
             </form>
@@ -159,25 +208,14 @@ export default function Stands() {
                   {stand.estado === 1 ? 'Activo' : 'Inactivo'}
                 </td>
                 <td className="px-6 py-4">
-                  <a
-                    href="#"
-                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline p-3"
-                  >
-                    Editar
-                  </a>
-                  <a
-                    href="#"
-                    onClick={() => handleEliminarStand(stand.id)}
-                    className="font-medium text-red-600 dark:text-red-500 hover:underline p-3"
-                  >
-                    Eliminar
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+                  <button
+                    onClick={() => openEditModal(stand)} // Abrir modal en modo editar
+                    className="font-medium text-blue-600 dar khover p-3" > Editar </button> 
+                    <button onClick={() => handleEliminarStand(stand.id)} // Eliminar stand 
+                    className="font-medium text-red-600 dark hoverp-3" > Eliminar </button> 
+                </td> 
+            </tr> ))} 
+          </tbody> 
+      </table> 
+    </div> 
+  </div> ); }

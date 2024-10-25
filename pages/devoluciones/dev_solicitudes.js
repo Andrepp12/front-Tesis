@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
+import Select from 'react-select';
 
 export default function Dev_Solicitudes() {
   const fechaActual = new Date().toISOString().split('T')[0];
@@ -23,6 +24,14 @@ export default function Dev_Solicitudes() {
   const [success, setSuccess] = useState('');
   const [detallesDevolucion, setDetallesDevolucion] = useState([]);
   const [devolucionSeleccionado, setDevolucionSeleccionado] = useState(null);
+  const opcionesProductos = productos.map((producto) => ({
+    value: producto.id,
+    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
+  }));
+  
+  const handleSelectProducto = (selectedOption) => {
+    setProductoId(selectedOption ? selectedOption.value : '');
+  };
 
   
   // Manejar el envío del formulario
@@ -132,7 +141,7 @@ export default function Dev_Solicitudes() {
 
   // Añadir el producto seleccionado a la lista de productos
   const agregarProducto = () => {
-    if (productoId && cantidad && descripcion) {
+    if (productoId && cantidad && descripcionDetalle) {
       const productoSeleccionado = productos.find((p) => p.id === parseInt(productoId));
 
       if (productoSeleccionado) {
@@ -226,7 +235,7 @@ export default function Dev_Solicitudes() {
       {/* Modal para agregar devolucion */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
             <h2 className="text-2xl font-bold mb-4">Agregar Nueva Devolucion</h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
@@ -284,32 +293,29 @@ export default function Dev_Solicitudes() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Productos</label>
                 <div className="flex space-x-4">
-                  <select
-                    value={productoId}
-                    onChange={(e) => setProductoId(e.target.value)}
-                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  >
-                    <option value="">Seleccionar Producto</option>
-                    {productos.map((producto) => (
-                      <option key={producto.id} value={producto.id}>
-                        {producto.codigo} - {producto.nombre} - {producto.talla}
-                      </option>
-                    ))}
-                  </select>
-
+                <Select
+                    options={opcionesProductos}
+                    onChange={handleSelectProducto}
+                    placeholder="Buscar producto..."
+                    isClearable
+                    className="w-full"
+                  />
+                </div>
+                <br></br>
+                <div className="flex space-x-4">
                   <input
                     type="number"
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
                     placeholder="Cantidad"
-                    className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   <input
                     type="text"
                     value={descripcionDetalle}
                     onChange={(e) => setDescripcionDetalle(e.target.value)}
                     placeholder="Descripcion"
-                    className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-2/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                 </div>
                 <button

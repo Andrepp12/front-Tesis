@@ -10,7 +10,7 @@ export default function Existencias() {
   const [descripcion, setDescripcion] = useState('');
   const [talla, setTalla] = useState('');
   const [precio, setPrecio] = useState('');
-  const [stockAlmacen, setStockAlmacen] = useState('');
+  const [stockAlmacen, setStockAlmacen] = useState('0');
   const [stockTotal, setStockTotal] = useState(0); // Define stockTotal
   const [ubicacion, setUbicacion] = useState('almacén');
   const [marca, setMarca] = useState('');
@@ -18,24 +18,47 @@ export default function Existencias() {
   const [success, setSuccess] = useState('');
   const [marcas, setMarcas] = useState([]);
   const [estado, setEstado] = useState(1); // Define estado aquí
+  const [productoId, setProductoId] = useState(null); // Nuevo estado para identificar si es modo edición
+  const [filteredProductos, setFilteredProductos] = useState([]);
+  const [searchNombre, setSearchNombre] = useState('');
+  const [searchCodigo, setSearchCodigo] = useState('');
+  const [filterTalla, setFilterTalla] = useState('');
+  const [sortField, setSortField] = useState(''); // 'precio' o 'stock'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' o 'desc'
 
-  // Función para manejar el envío del formulario
+  // Función para abrir modal en modo edición
+  const openEditModal = (producto) => {
+    setProductoId(producto.id); // Establecer el ID del producto para editar
+    setNombre(producto.nombre);
+    setCodigo(producto.codigo);
+    setDescripcion(producto.descripcion);
+    setTalla(producto.talla);
+    setPrecio(producto.precio);
+    setStockAlmacen(producto.stock_almacen);
+    setUbicacion(producto.ubicacion);
+    setMarca(producto.marca.id); // Asegúrate de pasar el ID de la marca
+    setShowModal(true); // Mostrar el modal
+  };
+
+  // Abrir modal para agregar nuevo producto
+  const openCreateModal = () => {
+    setProductoId(null); // Cambiar a modo creación (nuevo producto)
+    setNombre('');
+    setCodigo('');
+    setDescripcion('');
+    setTalla('');
+    setPrecio('');
+    setStockAlmacen('');
+    setUbicacion('almacén');
+    setMarca('');
+    setImagen(null);
+    setShowModal(true); // Mostrar el modal
+  };
+
+  // Manejar el envío del formulario (creación o edición)
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    // Verifica si tienes todos los datos correctos
-    console.log("nombre:", nombre);
-    console.log("codigo:", codigo);
-    console.log("descripcion:", descripcion);
-    console.log("talla:", talla);
-    console.log("precio:", precio);
-    console.log("stock_almacen:", stockAlmacen);
-    console.log("stock_total:", stockTotal); // Asegúrate de que stockTotal esté aquí
-    console.log("ubicacion:", ubicacion);
-    console.log("marca:", marca);  // Asegúrate de que es el ID numérico
-    console.log("imagen:", imagen);
-    console.log("estado:", estado);
-  
+    
     const formData = new FormData();
     formData.append('nombre', nombre);
     formData.append('codigo', codigo);
@@ -45,28 +68,52 @@ export default function Existencias() {
     formData.append('stock_almacen', stockAlmacen);
     formData.append('stock_total', stockAlmacen);
     formData.append('ubicacion', ubicacion);
-    formData.append('marca_id', marca);  // En lugar de 'marca' // Asegúrate de que sea el ID numérico de la marca
+    formData.append('marca_id', marca); // Asegúrate de que sea el ID numérico de la marca
     if (imagen) {
       formData.append('imagen', imagen);  // Aquí debes tener un input de tipo file
-    } // La imagen debe ser un objeto File
-    formData.append('estado', estado);
-  
-    try {
-      const response = await axiosInstance.post('gestion/productos/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-  
-      console.log('Producto agregado exitosamente:', response.data);
+    }
+    formData.append('estado', 1); // Estado por defecto activo
 
-      window.location.reload();
+    try {
+      let response;
+      if (productoId) {
+        // Modo edición
+        response = await axiosInstance.patch(`gestion/productos/${productoId}/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        setProductos(productos.map((producto) => (producto.id === productoId ? response.data : producto)));
+        setSuccess('Producto actualizado exitosamente');
+      } else {
+        // Modo creación
+        response = await axiosInstance.post('gestion/productos/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        setProductos([...productos, response.data]);
+        setSuccess('Producto agregado exitosamente');
+      }
+
+      setError('');
+      setShowModal(false);
+      setNombre('');
+      setCodigo('');
+      setDescripcion('');
+      setTalla('');
+      setPrecio('');
+      setStockAlmacen('');
+      setUbicacion('almacén');
+      setMarca('');
+      setImagen(null);
     } catch (error) {
-      console.error('Error al agregar el producto:', error.response.data);
-      setError('Error al agregar el producto. Intenta de nuevo.');
+      setError('Error al procesar el producto. Intenta de nuevo.');
+      setSuccess('');
     }
   };
-  
+
+  // Manejar la eliminación del producto
   const handleEliminarProducto = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
       try {
@@ -86,8 +133,8 @@ export default function Existencias() {
       try {
         const response = await axiosInstance.get('gestion/productos/');
         setProductos(response.data);
+        setFilteredProductos(response.data); // Inicializa los productos filtrados
       } catch (error) {
-        console.error('Error fetching productos:', error);
         setError('No se pudieron cargar los productos. Por favor, inténtalo de nuevo más tarde.');
       }
     };
@@ -104,6 +151,48 @@ export default function Existencias() {
     fetchProductos();
     fetchMarcas();
   }, []);
+  
+  const handleFilter = () => {
+    let productosFiltrados = productos;
+
+    if (searchNombre) {
+      productosFiltrados = productosFiltrados.filter((producto) =>
+        producto.nombre.toLowerCase().includes(searchNombre.toLowerCase())
+      );
+    }
+
+    if (searchCodigo) {
+      productosFiltrados = productosFiltrados.filter((producto) =>
+        producto.codigo.toLowerCase().includes(searchCodigo.toLowerCase())
+      );
+    }
+
+    if (filterTalla) {
+      productosFiltrados = productosFiltrados.filter((producto) =>
+        producto.talla === parseInt(filterTalla)
+      );
+    }
+
+    // Aplicar ordenamiento
+    if (sortField) {
+      productosFiltrados = productosFiltrados.sort((a, b) => {
+        const valueA = a[sortField];
+        const valueB = b[sortField];
+        if (sortOrder === 'asc') {
+          return valueA > valueB ? 1 : -1;
+        } else {
+          return valueA < valueB ? 1 : -1;
+        }
+      });
+    }
+
+    setFilteredProductos(productosFiltrados);
+  };
+
+  // Cada vez que cambien los filtros o el orden, se actualiza la tabla
+  useEffect(() => {
+    handleFilter();
+  }, [searchNombre, searchCodigo, filterTalla, sortField, sortOrder]);
 
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
@@ -111,7 +200,7 @@ export default function Existencias() {
       {error && <p className="text-red-500 text-center">{error}</p>}
       <button
         type="button"
-        onClick={() => setShowModal(true)} // Mostrar el modal al hacer clic
+        onClick={openCreateModal} // Mostrar el modal al hacer clic
         className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
       >
         + Agregar
@@ -121,7 +210,9 @@ export default function Existencias() {
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Agregar Nuevo Producto</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              {productoId ? 'Editar Producto' : 'Agregar Nuevo Producto'}
+            </h2>
             {error && <p className="text-red-500">{error}</p>}
             {success && <p className="text-green-500">{success}</p>}
 
@@ -176,8 +267,8 @@ export default function Existencias() {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Stock</label>
+              {/* <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Cantidad</label>
                 <input
                   type="number"
                   value={stockAlmacen}
@@ -185,7 +276,7 @@ export default function Existencias() {
                   required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
-              </div>
+              </div> */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Ubicación</label>
                 <input
@@ -198,15 +289,15 @@ export default function Existencias() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Marca</label>
                 <select
-                  value={marca}
-                  onChange={(e) => setMarca(e.target.value)}
+                  value={marca} // Aquí se asegura que se seleccione el valor de marca actual
+                  onChange={(e) => setMarca(e.target.value)} // Actualiza el valor de marca seleccionado
                   required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 >
                   <option value="">Seleccionar Marca</option>
-                  {marcas.map((marca) => (
-                    <option key={marca.id} value={marca.id}>
-                      {marca.nombre}
+                  {marcas.map((marcaItem) => (
+                    <option key={marcaItem.id} value={marcaItem.id}>
+                      {marcaItem.nombre}
                     </option>
                   ))}
                 </select>
@@ -232,89 +323,102 @@ export default function Existencias() {
                   type="submit"
                   className="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
                 >
-                  Guardar
+                  {productoId ? 'Guardar Cambios' : 'Guardar'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       ) : null}
+      
+
+      {/* Tabla de productos */}
+      <div className="min-h-screen dark:bg-gray-500 p-6">
+      {/* <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Productos</h1> */}
+
+      {/* Filtros */}
+      <div className="mb-6 flex gap-4">
+        <input
+          type="text"
+          placeholder="Buscar por Nombre"
+          value={searchNombre}
+          onChange={(e) => setSearchNombre(e.target.value)}
+          className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        />
+        <input
+          type="text"
+          placeholder="Buscar por Código"
+          value={searchCodigo}
+          onChange={(e) => setSearchCodigo(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        />
+        <select
+          value={filterTalla}
+          onChange={(e) => setFilterTalla(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          <option value="">Filtrar por Talla</option>
+          <option value="30">30</option>
+          <option value="2">Talla 2</option>
+          <option value="3">Talla 3</option>
+        </select>
+
+        <select
+          onChange={(e) => setSortField(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          <option value="">Ordenar Por</option>
+          <option value="precio">Precio</option>
+          <option value="stock_almacen">Stock</option>
+        </select>
+
+        <select
+          onChange={(e) => setSortOrder(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          <option value="asc">Ascendente</option>
+          <option value="desc">Descendente</option>
+        </select>
+      </div>
 
       {/* Tabla de productos */}
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-6">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
             <tr>
-              <th scope="col" className="px-16 py-3">
-                Imagen
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Código
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Producto
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Marca
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Talla
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Stock Almacén
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Stock Total
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Precio
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Acciones
-              </th>
+              <th scope="col" className="px-16 py-3">Imagen</th>
+              <th scope="col" className="px-6 py-3">Código</th>
+              <th scope="col" className="px-6 py-3">Producto</th>
+              <th scope="col" className="px-6 py-3">Marca</th>
+              <th scope="col" className="px-6 py-3">Talla</th>
+              <th scope="col" className="px-6 py-3">Stock Almacén</th>
+              <th scope="col" className="px-6 py-3">Stock Total</th>
+              <th scope="col" className="px-6 py-3">Precio</th>
+              <th scope="col" className="px-6 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {productos.map((producto) => (
+            {filteredProductos.map((producto) => (
               <tr
                 key={producto.id}
                 className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
               >
                 <td className="p-4">
                   <img
-                    src={producto.imagen}  // Usa la URL completa del servidor para la imagen
+                    src={producto.imagen} 
                     className="w-16 md:w-32 max-w-full max-h-full"
                     alt={producto.imagen}
                   />
                 </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {producto.codigo}
-                </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {producto.nombre}
-                </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {producto.marca?.nombre || 'Sin marca'}
-                </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {producto.talla}
-                </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {producto.stock_almacen}
-                </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {producto.stock_total}
-                </td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  ${producto.precio}
-                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.codigo}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.nombre}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.marca?.nombre || 'Sin marca'}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.talla}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_almacen}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_total}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">${producto.precio}</td>
                 <td className="px-6 py-4">
-                  <a
-                    href="#"
-                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline p-3"
-                  >
-                    Editar
-                  </a>
+                  <button onClick={() => openEditModal(producto)} className="text-blue-500 hover:underline">Editar</button>
                   <a
                     href="#"
                     onClick={() => handleEliminarProducto(producto.id)}
@@ -328,6 +432,7 @@ export default function Existencias() {
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 }
