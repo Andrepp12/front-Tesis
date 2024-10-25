@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 import Select from 'react-select';
 
+const ITEMS_PER_PAGE = 5;
+
 export default function Dev_Solicitudes() {
   const fechaActual = new Date().toISOString().split('T')[0];
   const [showModal, setShowModal] = useState(false);
@@ -32,7 +34,15 @@ export default function Dev_Solicitudes() {
   const handleSelectProducto = (selectedOption) => {
     setProductoId(selectedOption ? selectedOption.value : '');
   };
+  const [currentPage, setCurrentPage] = useState(1);
 
+  // Pagination calculation
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentDevoluciones = devoluciones.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(devoluciones.length / ITEMS_PER_PAGE);
+
+  const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
   
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
@@ -386,61 +396,91 @@ export default function Dev_Solicitudes() {
 
       {/* Mostrar los devoluciones agregados */}
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-  <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
-      <tr>
-        <th scope="col" className="px-6 py-3">ID</th>
-        <th scope="col" className="px-6 py-3">Fecha Devolución</th>
-        <th scope="col" className="px-6 py-3">Razón</th>
-        <th scope="col" className="px-6 py-3">Estado</th>
-        <th scope="col" className="px-6 py-3">Descripción</th>
-        <th scope="col" className="px-6 py-3">Solicitud</th>
-        <th scope="col" className="px-6 py-3">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {devoluciones.map((devolucion) => (
-        <tr
-          key={devolucion.id}
-          className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+          <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+              <th scope="col" className="px-6 py-3">ID</th>
+              <th scope="col" className="px-6 py-3">Fecha Devolución</th>
+              <th scope="col" className="px-6 py-3">Razón</th>
+              <th scope="col" className="px-6 py-3">Estado</th>
+              <th scope="col" className="px-6 py-3">Descripción</th>
+              <th scope="col" className="px-6 py-3">Solicitud</th>
+              <th scope="col" className="px-6 py-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentDevoluciones.map((devolucion) => (
+              <tr
+                key={devolucion.id}
+                className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+              >
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {devolucion.id}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {devolucion.fecha_devolucion}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {devolucion.razon}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {devolucion.estado === 1 ? 'Pendiente' : devolucion.estado === 2 ? 'Recibido' : 'Cancelado'}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {devolucion.descripcionDetalle}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {devolucion.solicitud ? devolucion.solicitud.id : 'N/A'}
+                </td>
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => abrirModalDetalles(devolucion.id)}
+                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline p-3"
+                  >
+                    Ver Detalles
+                  </button>
+                  <button
+                    onClick={() => handleEliminarDevolucion(devolucion.id)}
+                    className="text-white bg-red-500 hover:bg-red-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {/* Pagination Controls */}
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-4 py-2 mx-1 bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700"
         >
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.id}
-          </td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.fecha_devolucion}
-          </td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.razon}
-          </td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.estado === 1 ? 'Pendiente' : devolucion.estado === 2 ? 'Recibido' : 'Cancelado'}
-          </td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.descripcionDetalle}
-          </td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {devolucion.solicitud ? devolucion.solicitud.id : 'N/A'}
-          </td>
-          <td className="px-6 py-4">
-            <button
-              onClick={() => abrirModalDetalles(devolucion.id)}
-              className="font-medium text-blue-600 dark:text-blue-500 hover:underline p-3"
-            >
-              Ver Detalles
-            </button>
-            <button
-              onClick={() => handleEliminarDevolucion(devolucion.id)}
-              className="text-white bg-red-500 hover:bg-red-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
-            >
-              Eliminar
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+          Anterior
+        </button>
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i}
+            onClick={() => handlePageChange(i + 1)}
+            className={`px-4 py-2 mx-1 ${
+              currentPage === i + 1
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700'
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 mx-1 bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700"
+        >
+          Siguiente
+        </button>
+      </div>
+      </div>
 
 {/* Modal para mostrar los detalles del devolucion */}
 {showDetallesModal && (

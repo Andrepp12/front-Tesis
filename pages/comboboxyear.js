@@ -41,9 +41,17 @@ const YearMonthComboBox = ({ onMonthsChange, onProductChange }) => { // Asegúra
 
   const handleProductChange = (event) => {
     const productId = event.target.value;
+    const selected = productos.find(product => product['producto__id'] === Number(productId));
     setSelectedProduct(productId);
-    onProductChange(productId); // Llama a la función para cargar los datos del gráfico
-  };
+    
+    // Verificar si se encontró el producto
+    if (selected) {
+        onProductChange(productId, selected['producto__nombre'], selected['producto__talla']); // Llama a la función
+    } else {
+        console.error('Producto no encontrado:', productId);
+        onProductChange(productId, null, null); // O manejar el caso en que no se encuentra el producto
+    }
+};
 
   return (
     <div>

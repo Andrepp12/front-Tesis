@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
+import Select from 'react-select';
+
+const ITEMS_PER_PAGE = 5;
 
 export default function Pedidos() {
   const fechaActual = new Date().toISOString().split('T')[0];
@@ -21,6 +24,23 @@ export default function Pedidos() {
   const [success, setSuccess] = useState('');
   const [detallesPedido, setDetallesPedido] = useState([]);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+  const opcionesProductos = productos.map((producto) => ({
+    value: producto.id,
+    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
+  }));
+  
+  const handleSelectProducto = (selectedOption) => {
+    setProductoId(selectedOption ? selectedOption.value : '');
+  };
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Calculate pagination
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentPedidos = pedidos.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(pedidos.length / ITEMS_PER_PAGE);
+
+  const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
   
   // Manejar el envío del formulario
@@ -310,19 +330,16 @@ export default function Pedidos() {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Productos</label>
                 <div className="flex space-x-4">
-                  <select
-                    value={productoId}
-                    onChange={(e) => setProductoId(e.target.value)}
-                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  >
-                    <option value="">Seleccionar Producto</option>
-                    {productos.map((producto) => (
-                      <option key={producto.id} value={producto.id}>
-                        {producto.codigo} - {producto.nombre} - {producto.precio}
-                      </option>
-                    ))}
-                  </select>
-
+                <Select
+                    options={opcionesProductos}
+                    onChange={handleSelectProducto}
+                    placeholder="Buscar producto..."
+                    isClearable
+                    className="w-full"
+                  />
+                </div>
+                <br></br>
+                <div className="flex space-x-4">
                   <input
                     type="number"
                     value={cantidad}
@@ -412,44 +429,71 @@ export default function Pedidos() {
 
       {/* Mostrar los pedidos agregados */}
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-  <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-    <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
-      <tr>
-        <th scope="col" className="px-6 py-3">ID</th>
-        <th scope="col" className="px-6 py-3">Fecha Pedido</th>
-        <th scope="col" className="px-6 py-3">Fecha Entrega</th>
-        <th scope="col" className="px-6 py-3">Estado</th>
-        <th scope="col" className="px-6 py-3">Proveedor</th>
-        <th scope="col" className="px-6 py-3">Precio Total</th>
-        <th scope="col" className="px-6 py-3">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {pedidos.map((pedido) => (
-        <tr
-          key={pedido.id}
-          className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+              <th scope="col" className="px-6 py-3">ID</th>
+              <th scope="col" className="px-6 py-3">Fecha Pedido</th>
+              <th scope="col" className="px-6 py-3">Fecha Entrega</th>
+              <th scope="col" className="px-6 py-3">Estado</th>
+              <th scope="col" className="px-6 py-3">Proveedor</th>
+              <th scope="col" className="px-6 py-3">Precio Total</th>
+              <th scope="col" className="px-6 py-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentPedidos.map((pedido) => (
+              <tr
+                key={pedido.id}
+                className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+              >
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.id}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_pedido}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_entrega}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {pedido.estado === 1 ? 'Pendiente' : pedido.estado === 2 ? 'Recibido' : 'Cancelado'}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.proveedor.nombre}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.precio_total}</td>
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => abrirModalDetalles(pedido.id)}
+                    className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
+                  >
+                    Ver Detalles
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {/* Pagination Controls */}
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-4 py-2 mx-1 bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700"
         >
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.id}</td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_pedido}</td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_entrega}</td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-            {pedido.estado === 1 ? 'Pendiente' : pedido.estado === 2 ? 'Recibido' : 'Cancelado'}
-          </td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.proveedor.nombre}</td>
-          <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.precio_total}</td>
-          <td className="px-6 py-4">
-            <button
-              onClick={() => abrirModalDetalles(pedido.id)}
-              className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5"
-            >
-              Ver Detalles
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
+          Anterior
+        </button>
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i}
+            onClick={() => handlePageChange(i + 1)}
+            className={`px-4 py-2 mx-1 ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700'}`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 mx-1 bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700"
+        >
+          Siguiente
+        </button>
+      </div>
+
         {/* Modal para mostrar los detalles del pedido */}
       {showDetallesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">

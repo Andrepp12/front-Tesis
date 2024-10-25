@@ -32,6 +32,8 @@ export default function Index() {
   const [barData, setBarData] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [loadedData, setLoadedData] = useState(''); // Estado para los datos que enviarás a ChatbotForm
+  const [productInfo, setProductInfo] = useState({}); // Nuevo estado para almacenar información del producto
 
   const options = {
     responsive: true,
@@ -58,11 +60,12 @@ export default function Index() {
     setBarLabels(months); 
   };
 
-  const handleProductChange = (selectedProductId) => {
-    setSelectedProduct(selectedProductId);
-    // Asegúrate de que year ya está establecido antes de llamar a loadData
+  const handleProductChange = (productId, productName, productSize) => {
+    setSelectedProduct(productId);
+    setProductInfo({ id: productId, name: productName, size: productSize }); // Almacena la info del producto
     if (selectedYear) {
-        loadData(selectedProductId, selectedYear);
+        loadData(productId, selectedYear);
+        loadData2(productId);
     }
 };
 
@@ -95,11 +98,54 @@ const loadData = async (productId, year) => {
 
       setBarLabels(months);
       setBarData(amounts);
+
+      // const formattedData = months.map((month, index) => `${month}: ${amounts[index]}`).join('\n');
+      // setLoadedData(formattedData);
+      
+
   } catch (error) {
       console.error('Error al obtener las cantidades:', error);
   }
 };
 
+
+const loadData2 = async (productId) => {
+  console.log('Cargando datos con producto_id:', productId);
+  try {
+      const response = await fetch(`http://127.0.0.1:8000/api/gestion/suma-cantidades-all/?producto_id=${productId}`);
+      if (!response.ok) {
+          throw new Error(`Error en la respuesta de la API: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Datos recibidos:', data);
+
+      const quantities = data.suma;
+
+      if (!quantities) {
+          throw new Error('No se encontraron cantidades en la respuesta');
+      }
+
+      // Formatear la respuesta para enviar al ChatbotForm
+      const formattedData = Object.entries(quantities).map(([year, months]) => {
+        const monthEntries = Object.entries(months).map(([month, amount]) => {
+            const monthNames = [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ];
+            return `${monthNames[parseInt(month) - 1]}: ${amount}`;
+        }).join(', '); // Unir meses con comas
+
+        return `Año ${year} = (${monthEntries})`; // Formato requerido
+      }).join('. '); // Unir años con punto y espacio
+
+      console.log('Datos formateados para ChatbotForm:', formattedData); // Para depuración
+      setLoadedData(formattedData); // Establece los datos formateados
+
+      
+  } catch (error) {
+      console.error('Error al obtener las cantidades:', error);
+  }
+};
 
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6 flex">
@@ -128,7 +174,13 @@ const loadData = async (productId, year) => {
       </div>
       
       <div className="mt-8 ml-8" style={{ width: '421px' }}>
-        <ChatbotForm />
+      <ChatbotForm 
+          textData={loadedData} 
+          productId={productInfo.id}
+          productName={productInfo.name}
+          productSize={productInfo.size}
+        /> 
+
       </div>
     </div>
   );

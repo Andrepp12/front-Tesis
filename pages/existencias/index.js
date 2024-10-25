@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 
+const ITEMS_PER_PAGE = 10;
+
 export default function Existencias() {
   const [productos, setProductos] = useState([]);
   const [error, setError] = useState('');
@@ -25,6 +27,8 @@ export default function Existencias() {
   const [filterTalla, setFilterTalla] = useState('');
   const [sortField, setSortField] = useState(''); // 'precio' o 'stock'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' o 'desc'
+  const [currentPage, setCurrentPage] = useState(1);
+
 
   // Función para abrir modal en modo edición
   const openEditModal = (producto) => {
@@ -133,7 +137,7 @@ export default function Existencias() {
       try {
         const response = await axiosInstance.get('gestion/productos/');
         setProductos(response.data);
-        setFilteredProductos(response.data); // Inicializa los productos filtrados
+        setFilteredProductos(response.data);
       } catch (error) {
         setError('No se pudieron cargar los productos. Por favor, inténtalo de nuevo más tarde.');
       }
@@ -151,7 +155,7 @@ export default function Existencias() {
     fetchProductos();
     fetchMarcas();
   }, []);
-  
+
   const handleFilter = () => {
     let productosFiltrados = productos;
 
@@ -173,7 +177,6 @@ export default function Existencias() {
       );
     }
 
-    // Aplicar ordenamiento
     if (sortField) {
       productosFiltrados = productosFiltrados.sort((a, b) => {
         const valueA = a[sortField];
@@ -187,12 +190,20 @@ export default function Existencias() {
     }
 
     setFilteredProductos(productosFiltrados);
+    setCurrentPage(1); // Resetea a la primera página tras filtrar
   };
 
   // Cada vez que cambien los filtros o el orden, se actualiza la tabla
   useEffect(() => {
     handleFilter();
   }, [searchNombre, searchCodigo, filterTalla, sortField, sortOrder]);
+
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentItems = filteredProductos.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredProductos.length / ITEMS_PER_PAGE);
+
+  const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
@@ -398,7 +409,7 @@ export default function Existencias() {
             </tr>
           </thead>
           <tbody>
-            {filteredProductos.map((producto) => (
+            {currentItems.map((producto) => (
               <tr
                 key={producto.id}
                 className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
@@ -431,6 +442,32 @@ export default function Existencias() {
             ))}
           </tbody>
         </table>
+        {/* Paginación */}
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-4 py-2 mx-1 bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700"
+        >
+          Anterior
+        </button>
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i}
+            onClick={() => handlePageChange(i + 1)}
+            className={`px-4 py-2 mx-1 ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700'}`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 mx-1 bg-gray-200 rounded hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700"
+        >
+          Siguiente
+        </button>
+      </div>
       </div>
     </div>
     </div>

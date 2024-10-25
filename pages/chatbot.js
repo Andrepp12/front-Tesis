@@ -1,6 +1,6 @@
 import React, { useState } from 'react'; 
 
-const ChatbotForm = () => {
+const ChatbotForm = ({ textData, productId, productName, productSize }) => {
     const [inputValue, setInputValue] = useState('');
     const [response, setResponse] = useState(''); // Cambiado a cadena vacía
     const [error, setError] = useState(null);
@@ -16,12 +16,20 @@ const ChatbotForm = () => {
 
         setError(null); // Restablece el error si es válido
         try {
+            const formattedText = `
+                ID del Producto: ${productId || 'No disponible'}
+                Nombre del Producto: ${productName || 'No disponible'}
+                Talla del Producto: ${productSize || 'No disponible'}
+                Cantidad de demanda del producto: ${textData || 'No disponibles'}
+            `;
+
+
             const res = await fetch('http://127.0.0.1:8000/api/chat/message/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content: inputValue }), // Asegúrate de que coincida con lo que espera tu vista
+                body: JSON.stringify({ content: "Estas son cantidades de unidades demandas de un producto de calzado por los stands en distinas fechas: " + formattedText + ". Y a continuación, te envío una pregunta. No te olvides al responderla mencionar la talla y el nombre del producto" + inputValue }), // Asegúrate de que coincida con lo que espera tu vista
             });
 
             if (!res.ok) {
@@ -36,6 +44,13 @@ const ChatbotForm = () => {
             setError('Error al enviar el mensaje: ' + error.message);
         }
     };
+
+    // const formattedText2 = `
+    //             ID del Producto: ${productId || 'No disponible'}
+    //             Nombre del Producto: ${productName || 'No disponible'}
+    //             Talla del Producto: ${productSize || 'No disponible'}
+    //             Cantidad de demanda del producto: ${textData || 'No disponibles'}
+    //         `;
 
     return (
       <div >
@@ -63,6 +78,18 @@ const ChatbotForm = () => {
                 <button type="submit" className="text-white bg-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">Enviar</button>
             </form>
             {error && <div style={{ color: 'red' }}>{error}</div>}
+
+
+
+            {/* <textarea 
+                style={{ border: '2px solid black' }}
+                readOnly
+                rows={18}
+                cols={50}
+                value={formattedText2 || ''} // Mostrar los datos recibidos
+                placeholder="Datos cargados aparecerán aquí..."
+            /> */}
+
         </div>
       </div>
 
