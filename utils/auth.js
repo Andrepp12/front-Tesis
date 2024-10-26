@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axiosInstance from './axiosConfig';
 import Cookies from 'js-cookie';
 
 
 export const refreshAccessToken = async () => {
   try {
     const refreshToken = Cookies.get('refresh_token');
-    const response = await axios.post('http://127.0.0.1:8000/api/auth/token/refresh/', {
+    const response = await axiosInstance.post('auth/token/refresh/', {
       refresh: refreshToken,
     });
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'; 
+import axiosInstance from '../utils/axiosConfig';
 
 const ChatbotForm = ({ textData, productId, productName, productSize }) => {
     const [inputValue, setInputValue] = useState('');
@@ -23,23 +24,38 @@ const ChatbotForm = ({ textData, productId, productName, productSize }) => {
                 Cantidad de demanda del producto: ${textData || 'No disponibles'}
             `;
 
+            try {
+                const response = await axiosInstance.post('chat/message/', {
+                  content: `Estas son cantidades de unidades demandas de un producto de calzado por los stands en distintas fechas: ${formattedText}. Y a continuación, te envío una pregunta. No te olvides al responderla mencionar la talla y el nombre del producto ${inputValue}`,
+                });
+            
+                if (response.status !== 200) {
+                  throw new Error('Error al enviar el mensaje');
+                }
+            
+                const data = response.data;
+                console.log(data); // Para depuración
+                setResponse(data.data.text || ''); // Actualiza la respuesta del chatbot
+                setInputValue(''); // Limpia el campo de entrada
+              } catch (error) {
+                setError('Error al enviar el mensaje: ' + error.message);
+              }
+            // const res = await fetch('http://127.0.0.1:8000/api/chat/message/', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ content: "Estas son cantidades de unidades demandas de un producto de calzado por los stands en distinas fechas: " + formattedText + ". Y a continuación, te envío una pregunta. No te olvides al responderla mencionar la talla y el nombre del producto" + inputValue }), // Asegúrate de que coincida con lo que espera tu vista
+            // });
 
-            const res = await fetch('http://127.0.0.1:8000/api/chat/message/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ content: "Estas son cantidades de unidades demandas de un producto de calzado por los stands en distinas fechas: " + formattedText + ". Y a continuación, te envío una pregunta. No te olvides al responderla mencionar la talla y el nombre del producto" + inputValue }), // Asegúrate de que coincida con lo que espera tu vista
-            });
+            // if (!res.ok) {
+            //     throw new Error('Error al enviar el mensaje');
+            // }
 
-            if (!res.ok) {
-                throw new Error('Error al enviar el mensaje');
-            }
-
-            const data = await res.json();
-            console.log(data); // Añadir esta línea para depuración
-            setResponse(data.data.text || ''); // Actualiza la respuesta del chatbot
-            setInputValue(''); // Limpia el campo de entrada
+            // const data = await res.json();
+            // console.log(data); // Añadir esta línea para depuración
+            // setResponse(data.data.text || ''); // Actualiza la respuesta del chatbot
+            // setInputValue(''); // Limpia el campo de entrada
         } catch (error) {
             setError('Error al enviar el mensaje: ' + error.message);
         }

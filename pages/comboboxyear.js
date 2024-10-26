@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axiosInstance from '../utils/axiosConfig';
 
 const YearMonthComboBox = ({ onMonthsChange, onProductChange }) => { // Asegúrate de recibir la función como prop
   const [años, setAños] = useState([]);
@@ -9,12 +10,18 @@ const YearMonthComboBox = ({ onMonthsChange, onProductChange }) => { // Asegúra
   useEffect(() => {
     const obtenerAños = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/gestion/anos/');
-        const data = await response.json();
-        setAños(data);
+        const response = await axiosInstance.get('gestion/anos/');
+        setAños(response.data);
       } catch (error) {
         console.error('Error al obtener los años:', error);
       }
+      // try {
+      //   const response = await fetch('http://127.0.0.1:8000/api/gestion/anos/');
+      //   const data = await response.json();
+      //   setAños(data);
+      // } catch (error) {
+      //   console.error('Error al obtener los años:', error);
+      // }
     };
 
     obtenerAños();
@@ -31,12 +38,18 @@ const YearMonthComboBox = ({ onMonthsChange, onProductChange }) => { // Asegúra
 
   const obtenerProductosPorAño = async (year) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/gestion/productos/ano/${year}/`);
-      const data = await response.json();
-      setProductos(data.productos);
+      const response = await axiosInstance.get(`gestion/productos/ano/${year}/`);
+      setProductos(response.data.productos);
     } catch (error) {
       console.error('Error al obtener los productos:', error);
     }
+    // try {
+    //   const response = await fetch(`http://127.0.0.1:8000/api/gestion/productos/ano/${year}/`);
+    //   const data = await response.json();
+    //   setProductos(data.productos);
+    // } catch (error) {
+    //   console.error('Error al obtener los productos:', error);
+    // }
   };
 
   const handleProductChange = (event) => {

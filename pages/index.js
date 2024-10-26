@@ -4,6 +4,7 @@ import Cookies from 'js-cookie';
 import { Bar } from 'react-chartjs-2';
 import ChatbotForm from './chatbot'; 
 import YearMonthComboBox from './comboboxyear'; 
+import axiosInstance from '../utils/axiosConfig';
 
 import {
   Chart as ChartJS,
@@ -72,7 +73,13 @@ export default function Index() {
 const loadData = async (productId, year) => {
   console.log('Cargando datos con:', { productId, year }); // Verifica los parámetros
   try {
-      const response = await fetch(`http://127.0.0.1:8000/api/gestion/suma-cantidades/?producto_id=${productId}&year=${year}`);
+      const response = await axiosInstance.get('/gestion/suma-cantidades/', {
+        params: {
+          producto_id: productId,
+          year: year,
+        },
+      });
+      // const response = await fetch(`http://127.0.0.1:8000/api/gestion/suma-cantidades/?producto_id=${productId}&year=${year}`);
       if (!response.ok) {
           throw new Error(`Error en la respuesta de la API: ${response.status}`);
       }
@@ -112,7 +119,12 @@ const loadData = async (productId, year) => {
 const loadData2 = async (productId) => {
   console.log('Cargando datos con producto_id:', productId);
   try {
-      const response = await fetch(`http://127.0.0.1:8000/api/gestion/suma-cantidades-all/?producto_id=${productId}`);
+      const response = await axiosInstance.get('gestion/suma-cantidades-all/', {
+        params: {
+          producto_id: productId
+        },
+      });
+      // const response = await fetch(`http://127.0.0.1:8000/api/gestion/suma-cantidades-all/?producto_id=${productId}`);
       if (!response.ok) {
           throw new Error(`Error en la respuesta de la API: ${response.status}`);
       }
