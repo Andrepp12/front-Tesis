@@ -4,7 +4,9 @@ import { refreshAccessToken } from './auth';  // Importa la función para renova
 
 // Crear una instancia de Axios
 const axiosInstance = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/',  // URL base de la API
+  baseURL: process.env.NODE_ENV === 'production'
+    ? 'https://back-tesis-8noy.onrender.com/api/'  // URL para producción
+    : 'http://127.0.0.1:8000/api/',        // URL para desarrollo local
 });
 
 // Interceptor para manejar errores de respuesta

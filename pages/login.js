@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import axios from 'axios';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
+import axiosInstance from '../utils/axiosConfig';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -13,7 +13,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/auth/login/', {
+      const response = await axiosInstance.post('auth/login/', {
         username,
         password,
       });
