@@ -475,7 +475,7 @@ export default function Dev_Ventas() {
             <tbody>
               {detallesDevolucion.map((detalle) => (
                 <tr key={detalle.id}>
-                  <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo}</td>
+                  <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo} - {detalle.producto.talla}</td>
                   <td className="border px-4 py-2">{detalle.cantidad}</td>
                   <td className="border px-4 py-2">{detalle.descripcionDetalle}</td>
                 </tr>

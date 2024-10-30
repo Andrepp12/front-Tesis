@@ -93,8 +93,6 @@ export default function Dev_Pedidos() {
           await axiosInstance.post('gestion/movimientos/', {
             producto_id: detalle.productoId,
             cantidad: detalle.cantidad,
-            valor_unitario: producto.precio, // Valor unitario tomado del precio del producto
-            monto: detalle.cantidad * producto.precio, // Monto calculado
             fecha_movimiento: fechaDevolucion,
             codigo_trans: devolucionId,
             estado: 1,
@@ -524,7 +522,7 @@ export default function Dev_Pedidos() {
             <tbody>
               {detallesDevolucion.map((detalle) => (
                 <tr key={detalle.id}>
-                  <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo}</td>
+                  <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo} - {detalle.producto.talla}</td>
                   <td className="border px-4 py-2">{detalle.cantidad}</td>
                   <td className="border px-4 py-2">{detalle.descripcionDetalle}</td>
                 </tr>

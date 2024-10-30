@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 import Select from 'react-select';
+import DevolucionModal from '../../components/DevolucionModal';
 
 export default function Solicitudes() {
   const fechaActual = new Date().toISOString().split('T')[0];
@@ -37,6 +38,23 @@ export default function Solicitudes() {
   for (let i = 1; i <= Math.ceil(solicitudes.length / solicitudesPerPage); i++) {
     pageNumbers.push(i);
   }
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [solicitudId, setSolicitudId] = useState(null);
+
+  const openModal = (id) => {
+    setSolicitudId(id);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSolicitudId(null);
+  };
+
+  const handleDevolucionCreated = () => {
+    // Optionally refresh solicitudes or update state here
+  };
 
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
@@ -139,8 +157,40 @@ export default function Solicitudes() {
       alert('Hubo un error al intentar aprobar la solicitud y actualizar el stock.');
     }
   };
-  
 
+  const handleAtenderSolicitud = async (id) => {
+    try {
+      // Update the backend
+      await axiosInstance.patch(`gestion/solicitudes/${id}/`, { estado: 2 });
+      
+      // Update the main solicitudes array in the frontend
+      setSolicitudes((prevSolicitudes) =>
+        prevSolicitudes.map((solicitud) =>
+          solicitud.id === id ? { ...solicitud, estado: 2 } : solicitud
+        )
+      );
+    } catch (error) {
+      console.error('Error al actualizar el estado:', error);
+    }
+  };
+  
+  // const handleDevolverSolicitud = async (id) => {
+  //   try {
+  //     // Update the backend
+  //     await axiosInstance.patch(`gestion/solicitudes/${id}/`, { estado: 3 });
+      
+  //     // Update the main solicitudes array in the frontend
+  //     setSolicitudes((prevSolicitudes) =>
+  //       prevSolicitudes.map((solicitud) =>
+  //         solicitud.id === id ? { ...solicitud, estado: 3 } : solicitud
+  //       )
+  //     );
+  //   } catch (error) {
+  //     console.error('Error al actualizar el estado:', error);
+  //   }
+  // };
+  
+  
   const abrirModalDetalles = async (solicitudId) => {
     setShowDetallesModal(true); // Mostrar el modal de detalles
     setSolicitudSeleccionado(solicitudId); // Guardar el devolucion seleccionado
@@ -368,39 +418,58 @@ export default function Solicitudes() {
 
       {/* Mostrar las solicitudes agregadas */}
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-    <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-      <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
-        <tr>
-          <th scope="col" className="px-6 py-3">ID</th>
-          <th scope="col" className="px-6 py-3">Fecha de Solicitud</th>
-          <th scope="col" className="px-6 py-3">Estado</th>
-          <th scope="col" className="px-6 py-3">Stand</th>
-          <th scope="col" className="px-6 py-3">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {currentSolicitudes.map((solicitud) => (
-          <tr key={solicitud.id} className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500">
-            <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-              {solicitud.id}
-            </td>
-            <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-              {solicitud.fecha_solicitud}
-            </td>
-            <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-              {solicitud.estado === 1 ? 'Pendiente' : solicitud.estado === 2 ? 'Aprobada' : 'Rechazada'}
-            </td>
-            <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-              {solicitud.stand.nombre} ({solicitud.stand.ubicacion})
-            </td>
-            <td className="px-6 py-4">
-              <button onClick={() => abrirModalDetalles(solicitud.id)} className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5">Ver Detalles</button>
-              <button onClick={() => handleEliminarSolicitud(solicitud.id)} className="text-white bg-red-500 hover:bg-red-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5">Eliminar</button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+          <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+              <th scope="col" className="px-6 py-3">ID</th>
+              <th scope="col" className="px-6 py-3">Fecha de Solicitud</th>
+              <th scope="col" className="px-6 py-3">Estado</th>
+              <th scope="col" className="px-6 py-3">Stand</th>
+              <th scope="col" className="px-6 py-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentSolicitudes.map((solicitud) => (
+              <tr key={solicitud.id} className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500">
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {solicitud.id}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {solicitud.fecha_solicitud}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {solicitud.estado === 1 ? 'Pendiente' : solicitud.estado === 2 ? 'Aprobada' : solicitud.estado === 3 ? 'Devuelta' :'Rechazada'}
+                </td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                  {solicitud.stand.nombre} ({solicitud.stand.ubicacion})
+                </td>
+                <td className="px-6 py-4">
+                  <button onClick={() => abrirModalDetalles(solicitud.id)} className="text-white bg-blue-500 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5">Ver Detalles</button>
+                  <button onClick={() => handleEliminarSolicitud(solicitud.id)} className="text-white bg-red-500 hover:bg-red-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5">Eliminar</button>
+
+                  {/* Botón para cambiar el estado */}
+                  {solicitud.estado === 1 && (
+                    <button onClick={() => handleAtenderSolicitud(solicitud.id)} className="text-white bg-green-500 hover:bg-green-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 ml-2">
+                      Atender
+                    </button>
+                  )}
+                  {solicitud.estado === 2 && (
+                    <button onClick={() => openModal(solicitud.id)} className="text-white bg-yellow-500 hover:bg-yellow-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 ml-2">
+                    Devolver
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <DevolucionModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        solicitudId={solicitudId}
+        onDevolucionCreated={handleDevolucionCreated}
+      />
+
 
     {/* Paginación */}
     <div className="flex justify-center mt-4">
@@ -438,7 +507,7 @@ export default function Solicitudes() {
                 <tbody>
                   {detallesSolicitud.map((solicitud) => (
                     <tr key={solicitud.id}>
-                      <td className="border px-4 py-2">{solicitud.producto.nombre} - {solicitud.producto.codigo}</td>
+                      <td className="border px-4 py-2">{solicitud.producto.nombre} - {solicitud.producto.codigo} - {solicitud.producto.talla}</td>
                       <td className="border px-4 py-2">{solicitud.cantidad}</td>
                     </tr>
                   ))}

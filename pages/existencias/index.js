@@ -13,13 +13,15 @@ export default function Existencias() {
   const [talla, setTalla] = useState('');
   const [precio, setPrecio] = useState('');
   const [stockAlmacen, setStockAlmacen] = useState('0');
-  const [stockTotal, setStockTotal] = useState(0); // Define stockTotal
+  const [genero, setGenero] = useState('');
+  const [color, setColor] = useState('');
+  // const [stockTotal, setStockTotal] = useState(0); // Define stockTotal
   const [ubicacion, setUbicacion] = useState('almacén');
   const [marca, setMarca] = useState('');
   const [imagen, setImagen] = useState(null); // Estado para la imagen
   const [success, setSuccess] = useState('');
   const [marcas, setMarcas] = useState([]);
-  const [estado, setEstado] = useState(1); // Define estado aquí
+  // const [estado, setEstado] = useState(1); // Define estado aquí
   const [productoId, setProductoId] = useState(null); // Nuevo estado para identificar si es modo edición
   const [filteredProductos, setFilteredProductos] = useState([]);
   const [searchNombre, setSearchNombre] = useState('');
@@ -28,6 +30,80 @@ export default function Existencias() {
   const [sortField, setSortField] = useState(''); // 'precio' o 'stock'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' o 'desc'
   const [currentPage, setCurrentPage] = useState(1);
+  const [sizesList, setSizesList] = useState([]);
+
+  // Function to add a size to the list
+  const addSize = () => {
+    if (talla && !sizesList.includes(talla)) {
+      setSizesList([...sizesList, talla]);
+      setTalla(''); // Clear the size input field
+    } else {
+      setError('Talla ya existe en el listado o está vacío.');
+    }
+  };
+
+  // Function to remove a size from the list
+  const removeSize = (size) => {
+    setSizesList(sizesList.filter((item) => item !== size));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Iterate through each size in the list
+    for (const size of sizesList) {
+      const formData = new FormData();
+      formData.append('nombre', nombre);
+      formData.append('codigo', codigo);
+      formData.append('descripcion', descripcion);
+      formData.append('talla', size); // Use each size in the list
+      formData.append('precio', precio);
+      formData.append('genero', genero);
+      formData.append('color', precio);
+      formData.append('stock_almacen', stockAlmacen);
+      formData.append('stock_total', stockAlmacen);
+      formData.append('ubicacion', ubicacion);
+      formData.append('marca_id', marca);
+      if (imagen) {
+        formData.append('imagen', imagen);
+      }
+      formData.append('estado', 1);
+
+      try {
+        let response;
+        if (productoId) {
+          response = await axiosInstance.patch(`gestion/productos/${productoId}/`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          setProductos(productos.map((producto) => (producto.id === productoId ? response.data : producto)));
+        } else {
+          response = await axiosInstance.post('gestion/productos/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          setProductos([...productos, response.data]);
+        }
+        setSuccess('Producto registrado exitosamente para cada talla');
+        setError('');
+      } catch (error) {
+        setError('Error al procesar el producto. Intenta de nuevo.');
+        setSuccess('');
+      }
+    }
+  
+    // Reset form and close modal
+    setShowModal(false);
+    setNombre('');
+    setCodigo('');
+    setDescripcion('');
+    setPrecio('');
+    setGenero('');
+    setColor('');
+    setUbicacion('almacén');
+    setMarca('');
+    setImagen(null);
+    setSizesList([]); // Clear sizes list after submission
+  };
 
 
   // Función para abrir modal en modo edición
@@ -38,8 +114,10 @@ export default function Existencias() {
     setDescripcion(producto.descripcion);
     setTalla(producto.talla);
     setPrecio(producto.precio);
-    setStockAlmacen(producto.stock_almacen);
-    setUbicacion(producto.ubicacion);
+    setGenero(producto.genero);
+    setColor(producto.color);
+    // setStockAlmacen(producto.stock_almacen);
+    // setUbicacion(producto.ubicacion);
     setMarca(producto.marca.id); // Asegúrate de pasar el ID de la marca
     setShowModal(true); // Mostrar el modal
   };
@@ -52,7 +130,8 @@ export default function Existencias() {
     setDescripcion('');
     setTalla('');
     setPrecio('');
-    setStockAlmacen('');
+    setGenero('');
+    setColor('');
     setUbicacion('almacén');
     setMarca('');
     setImagen(null);
@@ -60,62 +139,7 @@ export default function Existencias() {
   };
 
   // Manejar el envío del formulario (creación o edición)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('nombre', nombre);
-    formData.append('codigo', codigo);
-    formData.append('descripcion', descripcion);
-    formData.append('talla', talla);
-    formData.append('precio', precio);
-    formData.append('stock_almacen', stockAlmacen);
-    formData.append('stock_total', stockAlmacen);
-    formData.append('ubicacion', ubicacion);
-    formData.append('marca_id', marca); // Asegúrate de que sea el ID numérico de la marca
-    if (imagen) {
-      formData.append('imagen', imagen);  // Aquí debes tener un input de tipo file
-    }
-    formData.append('estado', 1); // Estado por defecto activo
 
-    try {
-      let response;
-      if (productoId) {
-        // Modo edición
-        response = await axiosInstance.patch(`gestion/productos/${productoId}/`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        setProductos(productos.map((producto) => (producto.id === productoId ? response.data : producto)));
-        setSuccess('Producto actualizado exitosamente');
-      } else {
-        // Modo creación
-        response = await axiosInstance.post('gestion/productos/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        setProductos([...productos, response.data]);
-        setSuccess('Producto agregado exitosamente');
-      }
-
-      setError('');
-      setShowModal(false);
-      setNombre('');
-      setCodigo('');
-      setDescripcion('');
-      setTalla('');
-      setPrecio('');
-      setStockAlmacen('');
-      setUbicacion('almacén');
-      setMarca('');
-      setImagen(null);
-    } catch (error) {
-      setError('Error al procesar el producto. Intenta de nuevo.');
-      setSuccess('');
-    }
-  };
 
   // Manejar la eliminación del producto
   const handleEliminarProducto = async (id) => {
@@ -219,15 +243,13 @@ export default function Existencias() {
 
       {/* Modal para agregar productos */}
       {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">
-              {productoId ? 'Editar Producto' : 'Agregar Nuevo Producto'}
-            </h2>
-            {error && <p className="text-red-500">{error}</p>}
-            {success && <p className="text-green-500">{success}</p>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-gray-900 bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl">
+        <h2 className="text-2xl font-bold mb-4">{productoId ? 'Editar Producto' : 'Agregar Nuevo Producto'}</h2>
+        {error && <p className="text-red-500">{error}</p>}
+        {success && <p className="text-green-500">{success}</p>}
 
-            <form onSubmit={handleSubmit} encType="multipart/form-data">
+        <form onSubmit={handleSubmit} encType="multipart/form-data">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Nombre del Producto</label>
                 <input
@@ -257,53 +279,49 @@ export default function Existencias() {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 ></textarea>
               </div>
+
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Talla</label>
-                <input
-                  type="number"
-                  value={talla}
-                  onChange={(e) => setTalla(e.target.value)}
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Precio</label>
+                <div className="flex space-x-4">
+                <label className="block text-sm font-medium text-gray-700 py-3">Precio</label>
+                
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={precio}
                   onChange={(e) => setPrecio(e.target.value)}
                   required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="block w-1/2 mt-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
-              </div>
-              {/* <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Cantidad</label>
-                <input
-                  type="number"
-                  value={stockAlmacen}
-                  onChange={(e) => setStockAlmacen(e.target.value)}
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-              </div> */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Ubicación</label>
+              
+                <label className="block text-sm font-medium text-gray-700 py-3">Color</label>
                 <input
                   type="text"
-                  value={ubicacion}
-                  onChange={(e) => setUbicacion(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  required
+                  className="mt-1 block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
+                </div>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Marca</label>
+              <div className="flex space-x-4">
+                <label className="block text-sm font-medium text-gray-700 py-3">Género</label>
+                <select value={genero} onChange={(e) => setGenero(e.target.value)} 
+                className="mt-1 block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="hombre">Hombre</option>
+                    <option value="mujer">Mujer</option>
+                    <option value="unisex">Unisex</option>
+                    <option value="niño">Niño</option>
+                    <option value="niña">Niña</option>
+                </select>
+              
+                <label className="block text-sm font-medium text-gray-700 py-3">Marca</label>
                 <select
                   value={marca} // Aquí se asegura que se seleccione el valor de marca actual
                   onChange={(e) => setMarca(e.target.value)} // Actualiza el valor de marca seleccionado
                   required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 >
                   <option value="">Seleccionar Marca</option>
                   {marcas.map((marcaItem) => (
@@ -312,6 +330,7 @@ export default function Existencias() {
                     </option>
                   ))}
                 </select>
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Imagen del Producto</label>
@@ -322,10 +341,46 @@ export default function Existencias() {
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="mb-4">
+              <div className="flex space-x-4">
+                <label className="block text-sm font-medium text-gray-700 py-3">Talla</label>
+                <input
+                  type="number"
+                  value={talla}
+                  onChange={(e) => setTalla(e.target.value)}
+                  className="mt-1 block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+                <button type="button" onClick={addSize} className="mt-2 block w-1/2 px-4 py-2 bg-blue-500 text-white rounded">Agregar Talla</button>
+                </div>
+              </div>
+
+              {/* Display Sizes List */}
+              {sizesList.length > 0 && (
+                <table className="w-full mt-4">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2">Talla</th>
+                      <th className="px-4 py-2">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sizesList.map((size, index) => (
+                      <tr key={index}>
+                        <td className="border px-4 py-2">{size}</td>
+                        <td className="border px-4 py-2">
+                          <button onClick={() => removeSize(size)} className="text-red-500">Eliminar</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {/* Submit and Cancel buttons */}
+              <div className="flex justify-end mt-4">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)} // Cerrar el modal sin guardar
+                  onClick={() => setShowModal(false)}
                   className="text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2"
                 >
                   Cancelar
@@ -369,10 +424,16 @@ export default function Existencias() {
           className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         >
           <option value="">Filtrar por Talla</option>
-          <option value="30">30</option>
-          <option value="2">Talla 2</option>
-          <option value="3">Talla 3</option>
+          {[...Array(21)].map((_, index) => {
+            const talla = (35 + index * 0.5).toFixed(1);
+            return (
+              <option key={talla} value={talla}>
+                {talla}
+              </option>
+            );
+          })}
         </select>
+
 
         <select
           onChange={(e) => setSortField(e.target.value)}
@@ -402,7 +463,7 @@ export default function Existencias() {
               <th scope="col" className="px-6 py-3">Producto</th>
               <th scope="col" className="px-6 py-3">Marca</th>
               <th scope="col" className="px-6 py-3">Talla</th>
-              <th scope="col" className="px-6 py-3">Stock Almacén</th>
+              {/* <th scope="col" className="px-6 py-3">Stock Almacén</th> */}
               <th scope="col" className="px-6 py-3">Stock Total</th>
               <th scope="col" className="px-6 py-3">Precio</th>
               <th scope="col" className="px-6 py-3">Acciones</th>
@@ -425,7 +486,7 @@ export default function Existencias() {
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.nombre}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.marca?.nombre || 'Sin marca'}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.talla}</td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_almacen}</td>
+                {/* <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_almacen}</td> */}
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_total}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">${producto.precio}</td>
                 <td className="px-6 py-4">

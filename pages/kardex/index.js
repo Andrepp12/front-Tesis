@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
+import Select from 'react-select';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function Movimientos() {
   const [movimientos, setMovimientos] = useState([]);
@@ -11,9 +14,70 @@ export default function Movimientos() {
   const [tipoMovId, setTipoMovId] = useState('');
   const [productos, setProductos] = useState([]);
   const [tiposMovimiento, setTiposMovimiento] = useState([]);
+  const [filtroProducto, setFiltroProducto] = useState(null); // Estado para el filtro de producto
+  const contentRef = useRef();
+
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF({
+      orientation: 'l',
+      unit: 'pt',
+      format: 'a4'
+    });
+
+    // Título y fecha en el encabezado
+    const title = filtroProducto?.value 
+    ? `Kardex del producto ${filtroProducto.value}` 
+    : `Reporte de Movimientos`;
+
+console.log(title);
+
+    
+    const date = new Date().toLocaleDateString();
+
+    doc.setFontSize(16);
+    doc.text(title, 20, 40); // Posición del título
+    doc.setFontSize(12);
+    doc.text(`Fecha: ${date}`, 20, 60); // Posición de la fecha
+
+    // Agregar el contenido de la página al PDF
+    doc.html(contentRef.current, {
+      callback: (pdf) => {
+        pdf.save('download.pdf');
+      },
+      x: 10,
+      y: 80, // Ajuste para no superponer el título y la fecha
+      html2canvas: {
+        scale: 0.48,
+      },
+      margin: [20, 20, 20, 20]
+    });
+  };
+
+ 
+  // Obtener una lista única de nombres de productos para el filtro
+  const productosUnicos = [...new Set(movimientos.map((movimiento) => movimiento.producto.nombre))];
+
+  // Crear opciones para react-select
+  const opcionesProducto = [
+    { value: '', label: 'Todos los Productos' },
+    ...productosUnicos.map((producto) => ({ value: producto, label: producto }))
+  ];
+
+  // Filtrar movimientos según el producto seleccionado
+  const movimientosFiltrados = filtroProducto && filtroProducto.value
+    ? movimientos.filter((movimiento) => movimiento.producto.nombre === filtroProducto.value)
+    : movimientos;
+
+  // Calcular el stock acumulado para cada movimiento
+  const movimientosConStock = movimientosFiltrados.reduce((acc, movimiento, index) => {
+    const tipoMovResta = [1, 4, 6, 8, 9, 11];
+    const cantidad = movimiento.cantidad;
+    const stock = (index === 0 ? 0 : acc[index - 1].stock) + (tipoMovResta.includes(movimiento.tipo_mov.id) ? -cantidad : cantidad);
+    acc.push({ ...movimiento, stock });
+    return acc;
+  }, []);
 
   useEffect(() => {
-    // Obtener todos los movimientos
     const fetchMovimientos = async () => {
       try {
         const response = await axiosInstance.get('gestion/movimientos/');
@@ -23,7 +87,6 @@ export default function Movimientos() {
       }
     };
 
-    // Obtener todos los productos y tipos de movimiento para el modal
     const fetchProductos = async () => {
       try {
         const response = await axiosInstance.get('gestion/productos/');
@@ -50,33 +113,49 @@ export default function Movimientos() {
   const handleProductoChange = (e) => {
     const selectedProductoId = e.target.value;
     setProductoId(selectedProductoId);
-
-    // Encontrar el producto seleccionado y actualizar el valor unitario
     const selectedProducto = productos.find((producto) => producto.id === parseInt(selectedProductoId));
     if (selectedProducto) {
-      setValorUnitario(selectedProducto.precio); // Asignar el precio al valor unitario
+      setValorUnitario(selectedProducto.precio);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const movimientoData = {
       producto_id: productoId,
       cantidad,
-      valor_unitario: valorUnitario,
       fecha_movimiento: fechaMovimiento,
       tipo_mov_id: tipoMovId,
-      monto: cantidad * valorUnitario,
     };
-
+  
     try {
+      // Crear el movimiento
       const response = await axiosInstance.post('gestion/movimientos/', movimientoData);
       setMovimientos([response.data, ...movimientos]); // Añadir el nuevo movimiento a la lista
-      setShowModal(false); // Cerrar el modal
+  
+      // Obtener el stock actual del producto
+      const productoResponse = await axiosInstance.get(`gestion/productos/${productoId}/`);
+      const stockActual = productoResponse.data.stock_total;
+  
+      // Definir tipos de movimientos que restan stock
+      const tiposRestanStock = [1, 4, 6, 8, 9, 11];
+  
+      // Calcular el nuevo stock
+      const nuevoStock = tiposRestanStock.includes(tipoMovId)
+        ? stockActual - cantidad // Restar si el tipo de movimiento está en la lista
+        : stockActual + cantidad; // Sumar si no está en la lista
+  
+      // Actualizar el stock total del producto en la base de datos
+      await axiosInstance.patch(`gestion/productos/${productoId}/`, {
+        stock_total: nuevoStock,
+      });
+  
+      // Cerrar el modal y reiniciar el formulario
+      setShowModal(false);
       resetForm();
     } catch (error) {
-      console.error('Error al agregar el movimiento:', error);
+      console.error('Error al agregar el movimiento o actualizar el stock:', error);
     }
   };
 
@@ -99,9 +178,30 @@ export default function Movimientos() {
       >
         + Agregar Movimiento
       </button>
+      <button
+        type="button"
+        onClick={handleDownloadPdf}
+        className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+      >
+        Descargar PDF
+      </button>
+
 
       {/* Tabla de Movimientos */}
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-6">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Filtrar por Producto:</label>
+          <Select
+            value={filtroProducto}
+            onChange={setFiltroProducto}
+            options={opcionesProducto}
+            className="mt-1"
+            isClearable
+            placeholder="Selecciona un producto"
+          />
+        </div>
+        <div ref={contentRef} style={{ padding: 20, backgroundColor: '#f5f5f5' }}>
+        {/* Tabla de movimientos con stock acumulado */}
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
             <tr>
@@ -109,27 +209,33 @@ export default function Movimientos() {
               <th scope="col" className="px-6 py-3">Tipo de Movimiento</th>
               <th scope="col" className="px-6 py-3">Código de Operación</th>
               <th scope="col" className="px-6 py-3">Cantidad</th>
-              <th scope="col" className="px-6 py-3">Valor Unitario</th>
-              <th scope="col" className="px-6 py-3">Monto</th>
               <th scope="col" className="px-6 py-3">Fecha</th>
+              {filtroProducto && filtroProducto.value && (
+                <th scope="col" className="px-6 py-3">Stock</th>
+              )}
             </tr>
           </thead>
           <tbody>
-            {movimientos
-              .sort((a, b) => new Date(a.fecha_movimiento) - new Date(b.fecha_movimiento)) // Ordenar del más antiguo al más reciente
+            {movimientosConStock
+              .sort((a, b) => new Date(a.fecha_movimiento) - new Date(b.fecha_movimiento))
               .map((movimiento) => (
-              <tr key={movimiento.id} className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500">
-                <td className="px-6 py-4">{movimiento.producto.nombre}</td>
-                <td className="px-6 py-4">{movimiento.tipo_mov.nombre}</td>
-                <td className="px-6 py-4">{movimiento.codigo_trans ?? '-'}</td>
-                <td className="px-6 py-4">{movimiento.cantidad}</td>
-                <td className="px-6 py-4">${movimiento.valor_unitario}</td>
-                <td className="px-6 py-4">${movimiento.monto}</td>
-                <td className="px-6 py-4">{movimiento.fecha_movimiento}</td>
-              </tr>
+                <tr
+                  key={movimiento.id}
+                  className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+                >
+                  <td className="px-6 py-4">{movimiento.producto.nombre}</td>
+                  <td className="px-6 py-4">{movimiento.tipo_mov.nombre}</td>
+                  <td className="px-6 py-4">{movimiento.codigo_trans ?? '-'}</td>
+                  <td className="px-6 py-4">{movimiento.cantidad}</td>
+                  <td className="px-6 py-4">{movimiento.fecha_movimiento}</td>
+                  {filtroProducto && filtroProducto.value && (
+                    <td className="px-6 py-4">{movimiento.stock}</td>
+                  )}
+                </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Modal para agregar movimiento */}
@@ -141,19 +247,16 @@ export default function Movimientos() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Producto</label>
-                <select
+                
+                <Select
                   value={productoId}
-                  onChange={handleProductoChange} // Usar handleProductoChange aquí
+                  onChange={handleProductoChange}
+                  options={opcionesProducto}
+                  className="mt-1"
+                  isClearable
                   required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                >
-                  <option value="">Seleccionar Producto</option>
-                  {productos.map((producto) => (
-                    <option key={producto.id} value={producto.id}>
-                      {producto.nombre}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Selecciona un producto"
+                />
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Cantidad</label>

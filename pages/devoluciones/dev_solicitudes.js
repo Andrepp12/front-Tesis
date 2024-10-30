@@ -427,7 +427,7 @@ export default function Dev_Solicitudes() {
                   {devolucion.estado === 1 ? 'Pendiente' : devolucion.estado === 2 ? 'Recibido' : 'Cancelado'}
                 </td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                  {devolucion.descripcionDetalle}
+                  {devolucion.descripcion}
                 </td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                   {devolucion.solicitud ? devolucion.solicitud.id : 'N/A'}
@@ -509,7 +509,7 @@ export default function Dev_Solicitudes() {
           <tbody>
             {detallesDevolucion.map((detalle) => (
               <tr key={detalle.id}>
-                <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo}</td>
+                <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo} - {detalle.producto.talla}</td>
                 <td className="border px-4 py-2">{detalle.cantidad}</td>
                 <td className="border px-4 py-2">{detalle.descripcion}</td>
               </tr>

@@ -345,14 +345,14 @@ export default function Pedidos() {
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
                     placeholder="Cantidad"
-                    className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   <input
                     type="number"
                     value={precioUnitario}
                     onChange={(e) => setPrecioUnitario(e.target.value)}
                     placeholder="Precio Unidad"
-                    className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                 </div>
                 <button
@@ -435,7 +435,7 @@ export default function Pedidos() {
               <th scope="col" className="px-6 py-3">ID</th>
               <th scope="col" className="px-6 py-3">Fecha Pedido</th>
               <th scope="col" className="px-6 py-3">Fecha Entrega</th>
-              <th scope="col" className="px-6 py-3">Estado</th>
+              {/* <th scope="col" className="px-6 py-3">Estado</th> */}
               <th scope="col" className="px-6 py-3">Proveedor</th>
               <th scope="col" className="px-6 py-3">Precio Total</th>
               <th scope="col" className="px-6 py-3">Acciones</th>
@@ -450,9 +450,9 @@ export default function Pedidos() {
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.id}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_pedido}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.fecha_entrega}</td>
-                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                {/* <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                   {pedido.estado === 1 ? 'Pendiente' : pedido.estado === 2 ? 'Recibido' : 'Cancelado'}
-                </td>
+                </td> */}
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.proveedor.nombre}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{pedido.precio_total}</td>
                 <td className="px-6 py-4">
@@ -522,7 +522,7 @@ export default function Pedidos() {
                 <tbody>
                   {detallesPedido.map((detalle) => (
                     <tr key={detalle.id}>
-                      <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo}</td>
+                      <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo} - {detalle.producto.talla}</td>
                       <td className="border px-4 py-2">{detalle.cantidad}</td>
                       <td className="border px-4 py-2">{detalle.precio_unitario}</td>
                       <td className="border px-4 py-2">{detalle.estado === 1 ? 'Activo' : 'Inactivo'}</td>

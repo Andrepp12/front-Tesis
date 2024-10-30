@@ -12,12 +12,16 @@
     "axios": "^1.7.7",
     "chart.js": "^4.4.4",
     "front-tesis": "file:",
+    "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
+    "jspdf": "^2.5.2",
     "next": "14.2.13",
     "react": "^18",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18",
-    "react-select": "^5.8.1"
+    "react-modal": "^3.16.1",
+    "react-select": "^5.8.1",
+    "react-to-print": "^3.0.2"
   },
   "devDependencies": {
     "@types/node": "^20",

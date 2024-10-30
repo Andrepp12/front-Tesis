@@ -1,86 +1,103 @@
 import React, { useEffect, useState } from 'react';
+import Select from 'react-select';
+import axiosInstance from '../utils/axiosConfig';
 
-const YearMonthComboBox = ({ onMonthsChange, onProductChange }) => { // Asegúrate de recibir la función como prop
-  const [años, setAños] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('');
+const YearMonthComboBox = ({ onProductChange , onYearChange }) => {
   const [productos, setProductos] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [años, setAños] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(null);
 
   useEffect(() => {
-    const obtenerAños = async () => {
+    const obtenerProductos = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/gestion/anos/');
-        const data = await response.json();
-        setAños(data);
+        const response = await axiosInstance.get('gestion/productos/');
+        const data = await response.data;
+        
+        // Mapea los productos, ahora incluyendo el ID
+        setProductos(
+          data.map(producto => ({
+            value: producto.id, // Ahora usamos el ID
+            label: `${producto.nombre} (Talla: ${producto.talla}, Marca: ${producto.marca.nombre})`
+          }))
+        );
       } catch (error) {
-        console.error('Error al obtener los años:', error);
+        console.error('Error al obtener los productos:', error);
       }
     };
 
-    obtenerAños();
+    obtenerProductos();
   }, []);
 
-  const handleYearChange = (event) => {
-    const year = event.target.value;
-    setSelectedYear(year);
-    setProductos([]);
-    setSelectedProduct('');
-    obtenerProductosPorAño(year);
-    onMonthsChange([], year); // Reiniciar meses al cambiar el año
+  const handleProductChange = async (selectedOption) => {
+    if (!selectedOption) {
+      setSelectedProduct(null);
+      setAños([]);
+      setSelectedYear(null);
+      onProductChange(null, null, null); // Notifica que no hay producto seleccionado
+      return;
+    }
+    setSelectedProduct(selectedOption);
+    const productName = selectedOption.label.split(' (')[0];
+    const productId = selectedOption.value;
+    const sizeMatch = selectedOption.label.match(/Talla: (\d+)/);
+    const productSize = sizeMatch ? sizeMatch[1] : null;
+  
+    // Notifica el cambio de producto y establece el gráfico vacío
+    onProductChange(productId, productName, productSize); // Notifica al componente padre el nuevo producto
+  
+    // Obtiene los años para el producto seleccionado
+    await obtenerAnosPorProducto(productId);
+    // Limpia los años seleccionados
+    setSelectedYear(null);
   };
+  
 
-  const obtenerProductosPorAño = async (year) => {
+  const obtenerAnosPorProducto = async (productoId) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/gestion/productos/ano/${year}/`);
+      const response = await fetch(`http://127.0.0.1:8000/api/gestion/anios/producto/${productoId}/`);
       const data = await response.json();
-      setProductos(data.productos);
+      // Establece los años en el estado
+      setAños(data.años.map(año => ({ value: año, label: año })));
     } catch (error) {
-      console.error('Error al obtener los productos:', error);
+      console.error('Error al obtener los años:', error);
     }
   };
+  
 
-  const handleProductChange = (event) => {
-    const productId = event.target.value;
-    const selected = productos.find(product => product['producto__id'] === Number(productId));
-    setSelectedProduct(productId);
+  const handleYearChange = (selectedOption) => {
+    setSelectedYear(selectedOption);
     
-    // Verificar si se encontró el producto
-    if (selected) {
-        onProductChange(productId, selected['producto__nombre'], selected['producto__talla']); // Llama a la función
+    if (selectedOption) {
+      onYearChange(selectedOption.value); // Llama a onYearChange con el año seleccionado
     } else {
-        console.error('Producto no encontrado:', productId);
-        onProductChange(productId, null, null); // O manejar el caso en que no se encuentra el producto
+      onYearChange(null); // Llama a onYearChange con null si no hay opción seleccionada
     }
-};
+  };
+  
 
   return (
     <div>
-      <select  className="text-black bg-white-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" onChange={handleYearChange} value={selectedYear}>
-        <option value="">Selecciona un año</option>
-        {años.length > 0 ? (
-          años.map((año, index) => (
-            <option key={index} value={año}>
-              {año}
-            </option>
-          ))
-        ) : (
-          <option disabled>Cargando años...</option>
-        )}
-      </select>
+      {/* Select con buscador para Productos */}
+      <Select
+        className="mb-2"
+        placeholder="Selecciona un producto"
+        options={productos}
+        onChange={handleProductChange}
+        value={selectedProduct}
+        isClearable
+      />
 
-      {selectedYear && (
-        <select  className="text-black bg-white-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2" onChange={handleProductChange} value={selectedProduct}>
-          <option value="">Selecciona un producto</option>
-          {productos.length > 0 ? (
-            productos.map((producto, index) => (
-              <option key={index} value={producto['producto__id']}>
-                {producto['producto__nombre']} (ID: {producto['producto__id']}, Talla: {producto['producto__talla']})
-              </option>
-            ))
-          ) : (
-            <option disabled>Cargando productos...</option>
-          )}
-        </select>
+      {/* Select con buscador para Años */}
+      {selectedProduct && (
+        <Select
+          className="mb-2"
+          placeholder="Selecciona un año"
+          options={años}
+          onChange={handleYearChange}
+          value={selectedYear}
+          isClearable
+        />
       )}
     </div>
   );
