@@ -35,7 +35,7 @@ export default function Existencias() {
   // Function to add a size to the list
   const addSize = () => {
     if (talla && !sizesList.includes(talla)) {
-      setSizesList([...sizesList, talla]);
+      setSizesList([...sizesList, 1]);
       setTalla(''); // Clear the size input field
     } else {
       setError('Talla ya existe en el listado o está vacío.');
@@ -50,48 +50,68 @@ export default function Existencias() {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Iterate through each size in the list
-    for (const size of sizesList) {
-      const formData = new FormData();
-      formData.append('nombre', nombre);
-      formData.append('codigo', codigo);
-      formData.append('descripcion', descripcion);
-      formData.append('talla', size); // Use each size in the list
-      formData.append('precio', precio);
-      formData.append('genero', genero);
-      formData.append('color', precio);
-      formData.append('stock_almacen', stockAlmacen);
-      formData.append('stock_total', stockAlmacen);
-      formData.append('ubicacion', ubicacion);
-      formData.append('marca_id', marca);
-      if (imagen) {
-        formData.append('imagen', imagen);
-      }
-      formData.append('estado', 1);
-
-      try {
-        let response;
-        if (productoId) {
-          response = await axiosInstance.patch(`gestion/productos/${productoId}/`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-          setProductos(productos.map((producto) => (producto.id === productoId ? response.data : producto)));
-        } else {
+  
+    try {
+      let response;
+  
+      if (productoId) {
+        // Modo de edición: actualizar el producto con una sola talla
+        const formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('codigo', codigo);
+        formData.append('descripcion', descripcion);
+        formData.append('talla', talla); // Solo una talla en modo edición
+        formData.append('precio', precio);
+        formData.append('genero', genero);
+        formData.append('color', color);
+        formData.append('stock_almacen', stockAlmacen);
+        formData.append('stock_total', stockAlmacen);
+        formData.append('ubicacion', ubicacion);
+        formData.append('marca_id', marca);
+        if (imagen) {
+          formData.append('imagen', imagen);
+        }
+        formData.append('estado', 1);
+  
+        response = await axiosInstance.patch(`gestion/productos/${productoId}/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setProductos(productos.map((producto) => (producto.id === productoId ? response.data : producto)));
+      } else {
+        // Modo de creación: crear un producto para cada talla en `sizesList`
+        for (const size of sizesList) {
+          const formData = new FormData();
+          formData.append('nombre', nombre);
+          formData.append('codigo', codigo);
+          formData.append('descripcion', descripcion);
+          formData.append('talla', size); // Usar cada talla de la lista
+          formData.append('precio', precio);
+          formData.append('genero', genero);
+          formData.append('color', color);
+          formData.append('stock_almacen', stockAlmacen);
+          formData.append('stock_total', stockAlmacen);
+          formData.append('ubicacion', ubicacion);
+          formData.append('marca_id', marca);
+          if (imagen) {
+            formData.append('imagen', imagen);
+          }
+          formData.append('estado', 1);
+  
           response = await axiosInstance.post('gestion/productos/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
-          setProductos([...productos, response.data]);
+          setProductos((prevProductos) => [...prevProductos, response.data]);
         }
-        setSuccess('Producto registrado exitosamente para cada talla');
-        setError('');
-      } catch (error) {
-        setError('Error al procesar el producto. Intenta de nuevo.');
-        setSuccess('');
       }
+  
+      setSuccess(productoId ? 'Producto actualizado exitosamente' : 'Producto registrado exitosamente para cada talla');
+      setError('');
+    } catch (error) {
+      setError('Error al procesar el producto. Intenta de nuevo.');
+      setSuccess('');
     }
   
-    // Reset form and close modal
+    // Resetear formulario y cerrar modal
     setShowModal(false);
     setNombre('');
     setCodigo('');
@@ -102,7 +122,7 @@ export default function Existencias() {
     setUbicacion('almacén');
     setMarca('');
     setImagen(null);
-    setSizesList([]); // Clear sizes list after submission
+    setSizesList([]); // Limpiar la lista de tallas después del envío
   };
 
 
@@ -463,6 +483,7 @@ export default function Existencias() {
               <th scope="col" className="px-6 py-3">Producto</th>
               <th scope="col" className="px-6 py-3">Marca</th>
               <th scope="col" className="px-6 py-3">Talla</th>
+              <th scope="col" className="px-6 py-3">Color</th>
               {/* <th scope="col" className="px-6 py-3">Stock Almacén</th> */}
               <th scope="col" className="px-6 py-3">Stock Total</th>
               <th scope="col" className="px-6 py-3">Precio</th>
@@ -486,6 +507,7 @@ export default function Existencias() {
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.nombre}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.marca?.nombre || 'Sin marca'}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.talla}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.color}</td>
                 {/* <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_almacen}</td> */}
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{producto.stock_total}</td>
                 <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">${producto.precio}</td>

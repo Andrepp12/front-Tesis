@@ -22,6 +22,7 @@ export default function Dev_Pedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [productos, setProductos] = useState([]);
   const [devoluciones, setDevoluciones] = useState([]);
+  const [devolucionSeleccionado, setDevolucionSeleccionado] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [detallesDevolucion, setDetallesDevolucion] = useState([]);
@@ -524,7 +525,7 @@ export default function Dev_Pedidos() {
                 <tr key={detalle.id}>
                   <td className="border px-4 py-2">{detalle.producto.nombre} - {detalle.producto.codigo} - {detalle.producto.talla}</td>
                   <td className="border px-4 py-2">{detalle.cantidad}</td>
-                  <td className="border px-4 py-2">{detalle.descripcionDetalle}</td>
+                  <td className="border px-4 py-2">{detalle.descripcion}</td>
                 </tr>
               ))}
             </tbody>
