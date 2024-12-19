@@ -15,6 +15,9 @@ export default function Movimientos() {
   const [productos, setProductos] = useState([]);
   const [tiposMovimiento, setTiposMovimiento] = useState([]);
   const [filtroProducto, setFiltroProducto] = useState(null); // Estado para el filtro de producto
+  const [filtroStand, setFiltroStand] = useState(null);
+  const [stands, setStands] = useState([]); // Opciones de stands
+
   const contentRef = useRef();
 
   const handleDownloadPdf = () => {
@@ -62,11 +65,30 @@ console.log(title);
     { value: '', label: 'Todos los Productos' },
     ...productosUnicos.map((producto) => ({ value: producto, label: producto }))
   ];
+  const opcionesStand = [
+    { value: '', label: 'Todos los Stands' },
+    ...stands.map((stand) => ({ value: stand.id, label: stand.nombre }))
+  ];
+  
 
   // Filtrar movimientos según el producto seleccionado
-  const movimientosFiltrados = filtroProducto && filtroProducto.value
-    ? movimientos.filter((movimiento) => movimiento.producto.nombre === filtroProducto.value)
-    : movimientos;
+  // const movimientosFiltrados = filtroProducto && filtroProducto.value
+  //   ? movimientos.filter((movimiento) => movimiento.producto.nombre === filtroProducto.value)
+  //   : movimientos;
+
+  // Filtrar movimientos según el stand seleccionado
+  const movimientosFiltrados = movimientos
+    .filter((movimiento) =>
+      filtroProducto && filtroProducto.value
+        ? movimiento.producto.nombre === filtroProducto.value
+        : true
+    )
+    .filter((movimiento) =>
+      filtroStand && filtroStand.value
+        ? movimiento.stand === filtroStand.value
+        : true
+    );
+  
 
   // Calcular el stock acumulado para cada movimiento
   const movimientosConStock = movimientosFiltrados.reduce((acc, movimiento, index) => {
@@ -82,6 +104,7 @@ console.log(title);
       try {
         const response = await axiosInstance.get('gestion/movimientos/');
         setMovimientos(response.data);
+        console.log(response.data)
       } catch (error) {
         console.error('Error al obtener los movimientos:', error);
       }
@@ -104,7 +127,16 @@ console.log(title);
         console.error('Error al obtener tipos de movimiento:', error);
       }
     };
-
+    const fetchStands = async () => {
+      try {
+        const response = await axiosInstance.get('gestion/stands/'); // Ajusta el endpoint según tu API
+        setStands(response.data);
+      } catch (error) {
+        console.error('Error al obtener los stands:', error);
+      }
+    };
+  
+    fetchStands();
     fetchMovimientos();
     fetchProductos();
     fetchTiposMovimiento();
@@ -189,7 +221,8 @@ console.log(title);
 
       {/* Tabla de Movimientos */}
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-6">
-        <div className="mb-4">
+        
+        <div className="flex space-x-4">
           <label className="block text-sm font-medium text-gray-700">Filtrar por Producto:</label>
           <Select
             value={filtroProducto}
@@ -199,7 +232,18 @@ console.log(title);
             isClearable
             placeholder="Selecciona un producto"
           />
+        
+          <label className="block text-sm font-medium text-gray-700">Filtrar por Stand:</label>
+          <Select
+            value={filtroStand}
+            onChange={setFiltroStand}
+            options={opcionesStand}
+            className="mt-1"
+            isClearable
+            placeholder="Selecciona un stand"
+          />
         </div>
+
         <div ref={contentRef} style={{ padding: 20, backgroundColor: '#f5f5f5' }}>
         {/* Tabla de movimientos con stock acumulado */}
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">

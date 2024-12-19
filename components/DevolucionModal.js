@@ -73,13 +73,15 @@ const DevolucionModal = ({ isOpen, onClose, solicitudId, onDevolucionCreated }) 
   };
 
   const registrarMovimiento = async (productoId, diferencia) => {
-
+    const response = await axiosInstance.get(`gestion/solicitudes/${solicitudId}/`);
+    console.log(response.data)
     // Registrar el Movimiento con el codigo_trans ingresado
     await axiosInstance.post('gestion/movimientos/', {
       producto_id: productoId,
       cantidad: diferencia,
       fecha_movimiento: new Date().toISOString().split('T')[0],
       tipo_mov_id: 1,
+      stand: response.data.stand.id,
       estado: 1,
       codigo_trans: codigoTrans
     });

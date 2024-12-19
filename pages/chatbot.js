@@ -39,7 +39,7 @@ const ChatbotForm = ({ textData, productId, productName, productSize, enableInpu
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content: 'Estoas son cantidades de unidades demandas de un producto de calzado por los stands en distinas fechas: ' + formattedText + '. Cuando respondas la pregunta no te olvides de mencionar el nombre del producto y su talla en la respuesta. Si la pregunta te pida hacer una predicción, describe el resumen y explicación de tendencias y al final escribe una sección con el título ***PREDICIÓN*** y debes señalar los meses con sus respectivas cantidades pronosticadas. En caso la pregunta no te pida hace una prediccón entonces no escribas nada de la sección ***PREDICIÓN***, ni siquiera pongas el título ***PREDICIÓN***. A continuación, te envío la pregunta que debes analizar: ' + inputValue}), // Asegúrate de que coincida con lo que espera tu vista
+                body: JSON.stringify({ content: 'Estas son cantidades de unidades demandas de un producto de calzado en distinas fechas: ' + formattedText + '. Cuando respondas la pregunta no te olvides de mencionar el nombre del producto y su talla en la respuesta. Si la pregunta te pida hacer una predicción, describe el resumen y explicación de tendencias y al final escribe una sección con el título ***PREDICIÓN*** y debes señalar todos los meses con sus respectivas cantidades pronosticadas. En caso la pregunta no te pida hace una prediccón entonces no escribas nada de la sección ***PREDICIÓN***, ni siquiera pongas el título ***PREDICIÓN***. A continuación, te envío la pregunta que debes analizar: ' + inputValue}), // Asegúrate de que coincida con lo que espera tu vista
             });
 
             if (!res.ok) {
@@ -57,7 +57,7 @@ const ChatbotForm = ({ textData, productId, productName, productSize, enableInpu
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content:  'Si en el texto que te enviaré para que analices hay una sección explícitamene llamada  ***PREDICIÓN*** entonces te pido que transformes sus datos y me devuelvas con este formato Json de ejemplo: {"suma": {"1": 15,"2": 5, .... }}, en este ejemplo la cantidad demandada es 15 y 5 y los meses (Enero y Febrero) están como números, en el texto que te dare trata de ajustar a este formtao de ejemplo en base a los datos que se proporcionaran. En caso no haya una sección llamada explícitamene llamada "***PREDICIÓN***", responde con un 0. Aquí el texto que debes analizar:' + data.data.text }),
+                body: JSON.stringify({ content:  'Si en el texto que te enviaré para que analices hay una sección explícitamene llamada  ***PREDICIÓN*** entonces te pido que transformes sus datos y me devuelvas con este formato Json de ejemplo: {"suma": {"1": 15,"2": 5, .... }}, en este ejemplo la cantidad demandada es 15 y 5 y los meses (Enero y Febrero) están como números, en el texto que te dare trata de ajustar a este formato de ejemplo en base a los datos que se proporcionaran. En caso no haya una sección llamada explícitamene llamada "***PREDICIÓN***", responde con un 0. Aquí el texto que debes analizar:' + data.data.text }),
             });
 
             if (!res2.ok) {

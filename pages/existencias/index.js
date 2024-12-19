@@ -35,7 +35,9 @@ export default function Existencias() {
   // Function to add a size to the list
   const addSize = () => {
     if (talla && !sizesList.includes(talla)) {
-      setSizesList([...sizesList, 1]);
+      console.log(talla)
+      setSizesList([...sizesList, talla]);
+      console.log(talla)
       setTalla(''); // Clear the size input field
     } else {
       setError('Talla ya existe en el listado o está vacío.');
@@ -64,8 +66,8 @@ export default function Existencias() {
         formData.append('precio', precio);
         formData.append('genero', genero);
         formData.append('color', color);
-        formData.append('stock_almacen', stockAlmacen);
-        formData.append('stock_total', stockAlmacen);
+        // formData.append('stock_almacen', stockAlmacen);
+        // formData.append('stock_total', stockAlmacen);
         formData.append('ubicacion', ubicacion);
         formData.append('marca_id', marca);
         if (imagen) {

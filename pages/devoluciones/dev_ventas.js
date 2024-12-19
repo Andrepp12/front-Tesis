@@ -10,6 +10,8 @@ export default function Dev_Ventas() {
   const [boleta, setBoleta] = useState('');
   const [fechaDevolucion, setFechaDevolucion] = useState(fechaActual);
   const [razon, setRazon] = useState('');
+  const [stand, setStand] = useState('');
+    const [stands, setStands] = useState([]);
   const [descripcion, setDescripcion] = useState('');
   const [descripcionDetalle, setDescripcionDetalle] = useState('');
   // const [precioTotal, setPrecioTotal] = useState(0);
@@ -94,6 +96,7 @@ export default function Dev_Ventas() {
             fecha_movimiento: fechaDevolucion,
             codigo_trans: devolucionId,
             estado: 1,
+            stand: stand,
             tipo_mov_id: 3, // Tipo de movimiento 4 para devoluciones
           });
   
@@ -202,6 +205,7 @@ export default function Dev_Ventas() {
 
   const resetForm = () => {
     setRazon('');
+    setStand('');
     setDescripcion('');
     setFechaDevolucion(fechaActual);
     setProductosSeleccionados([]);
@@ -229,7 +233,17 @@ export default function Dev_Ventas() {
       }
     };
 
+    const fetchStands = async () => {
+      try {
+        const response = await axiosInstance.get('gestion/stands/');
+        setStands(response.data);
+      } catch (error) {
+        console.error('Error fetching stands:', error);
+      }
+    };
+
     fetchProductos();
+    fetchStands();
     fetchDevoluciones();
   }, []);
 
@@ -276,6 +290,22 @@ export default function Dev_Ventas() {
                   required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Stand</label>
+                <select
+                  value={stand}
+                  onChange={(e) => setStand(e.target.value)}
+                  required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                >
+                  <option value="">Seleccionar Stand</option>
+                  {stands.map((stand) => (
+                    <option key={stand.id} value={stand.id}>
+                      {stand.nombre} - {stand.ubicacion}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Descripcion</label>

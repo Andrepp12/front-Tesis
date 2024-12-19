@@ -60,11 +60,7 @@ export default function Solicitudes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // console.log({
-    //   stand_id: stand, // Este debería ser el ID del stand
-    //   fecha_solicitud: fechaSolicitud,
-    //   estado: 1,
-    // });
+
 
     try {
       // Crear la solicitud
@@ -173,22 +169,7 @@ export default function Solicitudes() {
       console.error('Error al actualizar el estado:', error);
     }
   };
-  
-  // const handleDevolverSolicitud = async (id) => {
-  //   try {
-  //     // Update the backend
-  //     await axiosInstance.patch(`gestion/solicitudes/${id}/`, { estado: 3 });
-      
-  //     // Update the main solicitudes array in the frontend
-  //     setSolicitudes((prevSolicitudes) =>
-  //       prevSolicitudes.map((solicitud) =>
-  //         solicitud.id === id ? { ...solicitud, estado: 3 } : solicitud
-  //       )
-  //     );
-  //   } catch (error) {
-  //     console.error('Error al actualizar el estado:', error);
-  //   }
-  // };
+
   
   
   const abrirModalDetalles = async (solicitudId) => {
