@@ -77,22 +77,48 @@ const YearMonthComboBox = ({ onProductChange , onYearChange }) => {
   
 
   return (
-    <div>
-      {/* Select con buscador para Productos */}
+    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      {/* Select con estilos en línea para Productos */}
       <Select
-        className="mb-2"
-        placeholder="Selecciona un producto"
+        styles={{
+          control: (base) => ({
+            ...base,
+            width: '380px', // Cambiado a 420px
+            backgroundColor: '#f7f7f7',
+            borderRadius: '8px',
+            borderColor: '#ccc',
+            '&:hover': { borderColor: '#888' },
+          }),
+          menu: (base) => ({
+            ...base,
+            maxWidth: '420px', // Cambiado a 420px
+          }),
+        }}
+        placeholder="Producto"
         options={productos}
         onChange={handleProductChange}
         value={selectedProduct}
         isClearable
       />
 
-      {/* Select con buscador para Años */}
+      {/* Select con estilos en línea para Años */}
       {selectedProduct && (
         <Select
-          className="mb-2"
-          placeholder="Selecciona un año"
+          styles={{
+            control: (base) => ({
+              ...base,
+              width: '380px', // Cambiado a 420px
+              backgroundColor: '#f7f7f7',
+              borderRadius: '8px',
+              borderColor: '#ccc',
+              '&:hover': { borderColor: '#888' },
+            }),
+            menu: (base) => ({
+              ...base,
+              maxWidth: '420px', // Cambiado a 420px
+            }),
+          }}
+          placeholder="Año"
           options={años}
           onChange={handleYearChange}
           value={selectedYear}
@@ -102,5 +128,4 @@ const YearMonthComboBox = ({ onProductChange , onYearChange }) => {
     </div>
   );
 };
-
 export default YearMonthComboBox;

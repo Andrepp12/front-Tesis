@@ -14,7 +14,7 @@ export default function Pedidos() {
   const [fechaEntrega, setFechaEntrega] = useState(fechaActual);
   // const [precioTotal, setPrecioTotal] = useState(0);
   const [productoId, setProductoId] = useState('');
-  const [cantidad, setCantidad] = useState('');
+  const [cantidad, setCantidad] = useState('1');
   const [precioUnitario, setPrecioUnitario] = useState('');
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -187,7 +187,7 @@ export default function Pedidos() {
         ]);
         // Limpiar después de agregar
         setProductoId('');
-        setCantidad('');
+        setCantidad('1');
         setPrecioUnitario('');
         setError('');
       }
@@ -257,7 +257,7 @@ export default function Pedidos() {
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Pedidos</h1>
-      {error && <p className="text-red-500 text-center">{error}</p>}
+      {/* {error && <p className="text-red-500 text-center">{error}</p>} */}
       <button
         type="button"
         onClick={() => setShowModal(true)}
@@ -343,9 +343,10 @@ export default function Pedidos() {
                   <input
                     type="number"
                     value={cantidad}
-                    onChange={(e) => setCantidad(e.target.value)}
+                    onChange={(e) => setCantidad(parseInt(e.target.value))}
                     placeholder="Cantidad"
-                    className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    min="1"
+                    className="block w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   <input
                     type="number"

@@ -16,7 +16,7 @@ export default function Dev_Ventas() {
   const [descripcionDetalle, setDescripcionDetalle] = useState('');
   // const [precioTotal, setPrecioTotal] = useState(0);
   const [productoId, setProductoId] = useState('');
-  const [cantidad, setCantidad] = useState('');
+  const [cantidad, setCantidad] = useState('1');
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [productos, setProductos] = useState([]);
   const [devoluciones, setDevoluciones] = useState([]);
@@ -187,7 +187,7 @@ export default function Dev_Ventas() {
         ]);
         // Limpiar después de agregar
         setProductoId('');
-        setCantidad('');
+        setCantidad('1');
         setDescripcionDetalle('');
         setError('');
       }
@@ -250,7 +250,7 @@ export default function Dev_Ventas() {
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Devoluciones</h1>
-      {error && <p className="text-red-500 text-center">{error}</p>}
+      {/* {error && <p className="text-red-500 text-center">{error}</p>} */}
       <button
         type="button"
         onClick={() => setShowModal(true)}
@@ -346,8 +346,9 @@ export default function Dev_Ventas() {
                   <input
                     type="number"
                     value={cantidad}
-                    onChange={(e) => setCantidad(e.target.value)}
+                    onChange={(e) => setCantidad(parseInt(e.target.value))}
                     placeholder="Cantidad"
+                    min="1"
                     className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   <input

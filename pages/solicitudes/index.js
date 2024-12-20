@@ -10,7 +10,7 @@ export default function Solicitudes() {
   const [stand, setStand] = useState('');
   const [fechaSolicitud, setFechaSolicitud] = useState(fechaActual);
   const [productoId, setProductoId] = useState(''); // Para manejar el producto actual seleccionado
-  const [cantidad, setCantidad] = useState(''); // Para manejar la cantidad actual seleccionada
+  const [cantidad, setCantidad] = useState('1'); // Para manejar la cantidad actual seleccionada
   const [productosSeleccionados, setProductosSeleccionados] = useState([]); // Productos seleccionados con cantidades
   const [stands, setStands] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -26,7 +26,7 @@ export default function Solicitudes() {
   const currentSolicitudes = solicitudes.slice(indexOfFirstSolicitud, indexOfLastSolicitud);
   const opcionesProductos = productos.map((producto) => ({
     value: producto.id,
-    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
+    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla} - Stock:${producto.stock_total}`,
   }));
   
   const handleSelectProducto = (selectedOption) => {
@@ -215,7 +215,7 @@ export default function Solicitudes() {
           ]);
           // Limpiar después de agregar
           setProductoId('');
-          setCantidad('');
+          setCantidad('1');
           setError(''); // Limpiar cualquier error anterior
         }
       }
@@ -326,9 +326,10 @@ export default function Solicitudes() {
                 <input
                   type="number"
                   value={cantidad}
-                  onChange={(e) => setCantidad(e.target.value)}
+                  onChange={(e) => setCantidad(parseInt(e.target.value))}
                   placeholder="Cantidad"
-                  className="block w-1/4 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  min="1"
+                  className="block w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
               </div>
 

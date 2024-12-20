@@ -17,7 +17,7 @@ export default function Dev_Pedidos() {
   const [descripcionDetalle, setDescripcionDetalle] = useState('');
   // const [precioTotal, setPrecioTotal] = useState(0);
   const [productoId, setProductoId] = useState('');
-  const [cantidad, setCantidad] = useState('');
+  const [cantidad, setCantidad] = useState('1');
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -26,10 +26,11 @@ export default function Dev_Pedidos() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [detallesDevolucion, setDetallesDevolucion] = useState([]);
-  const opcionesProductos = productos.map((producto) => ({
-    value: producto.id,
-    label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
-  }));
+  // const opcionesProductos = productos.map((producto) => ({
+  //   value: producto.id,
+  //   label: `${producto.codigo} - ${producto.nombre} - ${producto.talla}`,
+  // }));
+  const [opcionesProductos, setOpcionesProductos] = useState([]);
   
   const handleSelectProducto = (selectedOption) => {
     setProductoId(selectedOption ? selectedOption.value : '');
@@ -169,30 +170,65 @@ export default function Dev_Pedidos() {
 
   // Añadir el producto seleccionado a la lista de productos
   const agregarProducto = () => {
-    if (productoId && cantidad && descripcionDetalle) {
-      const productoSeleccionado = productos.find((p) => p.id === parseInt(productoId));
-
-      if (productoSeleccionado) {
-        setProductosSeleccionados([
-          ...productosSeleccionados,
-          {
-            productoId,
-            cantidad,
-            nombre: productoSeleccionado.nombre,
-            codigo: productoSeleccionado.codigo,
-            talla: productoSeleccionado.talla,
-            descripcionDetalle: descripcionDetalle,
-          },
-        ]);
-        // Limpiar después de agregar
-        setProductoId('');
-        setCantidad('');
-        setDescripcionDetalle('');
-        setError('');
-      }
-    } else {
-      setError('Por favor, selecciona un producto y la cantidad.');
+    if (!productoId || !cantidad || !descripcionDetalle) {
+      console.log(productoId)
+      setError("Por favor, selecciona un producto, especifica la cantidad y añade una descripción.");
+      return;
     }
+  
+    const productoSeleccionado = opcionesProductos.find(
+      (producto) => producto.value === parseInt(productoId)
+    );
+  
+    if (!productoSeleccionado) {
+      setError("El producto seleccionado no es válido.");
+      return;
+    }
+  
+    // Verificar que el producto no esté duplicado
+    const yaAgregado = productosSeleccionados.some(
+      (producto) => producto.id === productoSeleccionado.value
+    );
+    if (yaAgregado) {
+      setError("Este producto ya ha sido agregado.");
+      return;
+    }
+  
+    // Validar que la cantidad no exceda el límite permitido en detalle_pedido
+    const detallePedido = opcionesProductos.find(
+      (producto) => producto.value === parseInt(productoId)
+    );
+  
+    if (!detallePedido) {
+      setError("No se encontró información del producto en el pedido.");
+      return;
+    }
+  
+    if (parseInt(cantidad) > detallePedido.cantidadDisponible) {
+      setError(
+        `La cantidad no puede exceder la cantidad disponible (${detallePedido.cantidadDisponible}).`
+      );
+      return;
+    }
+  
+    // Agregar el producto a la lista de productos seleccionados
+    setProductosSeleccionados([
+      ...productosSeleccionados,
+      {
+        id: productoSeleccionado.value,
+        nombre: productoSeleccionado.nombre,
+        codigo: productoSeleccionado.codigo,
+        talla: productoSeleccionado.talla,
+        cantidad: parseInt(cantidad),
+        descripcionDetalle,
+      },
+    ]);
+  
+    // Limpiar campos
+    setCantidad("1");
+    setDescripcionDetalle("");
+    setProductoId("");
+    setError("");
   };
 
   // Eliminar un producto seleccionado
@@ -245,6 +281,37 @@ export default function Dev_Pedidos() {
     fetchDevoluciones();
   }, []);
 
+  const handleSelectPedido = async (selectedOption) => {
+    setPedido(selectedOption ? selectedOption.value : "");
+  
+    if (selectedOption) {
+      try {
+        const response = await axiosInstance.get(
+          `gestion/detalles_pedido/pedido/${selectedOption.value}/`
+        );
+        const productosFiltrados = response.data.map((detalle) => ({
+          value: detalle.producto.id,
+          label: `${detalle.producto.codigo} - ${detalle.producto.nombre} - Max: ${detalle.cantidad}`,
+          nombre: detalle.producto.nombre,
+          codigo: detalle.producto.codigo,
+          talla: detalle.producto.talla,
+          cantidadDisponible: detalle.cantidad, // Cantidad máxima permitida
+        }));
+        setOpcionesProductos(productosFiltrados);
+      } catch (error) {
+        console.error("Error fetching productos del pedido seleccionado:", error);
+      }
+    } else {
+      setOpcionesProductos([]);
+    }
+  };
+
+    // Crear las opciones para el select
+    const opcionesPedidos = pedidos.map((pedido) => ({
+      value: pedido.id,
+      label: `${pedido.factura} - ${pedido.proveedor.ruc}`,
+    }));
+
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Devoluciones</h1>
@@ -268,19 +335,15 @@ export default function Dev_Pedidos() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Pedido</label>
-                <select
-                  value={pedido}
-                  onChange={(e) => setPedido(e.target.value)}
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                >
-                  <option value="">Seleccionar Pedido</option>
-                  {pedidos.map((pedido) => (
-                    <option key={pedido.id} value={pedido.id}>
-                      {pedido.factura} - {pedido.proveedor.ruc}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  options={pedidos.map((pedido) => ({
+                    value: pedido.id,
+                    label: `Factura: ${pedido.factura} - Proveedor: ${pedido.proveedor.ruc}`,
+                  }))}
+                  onChange={handleSelectPedido}
+                  placeholder="Seleccionar Pedido"
+                  isClearable
+                />
               </div>
 
               <div className="mb-4">
@@ -321,12 +384,11 @@ export default function Dev_Pedidos() {
 
                 {/* Select para mostrar productos filtrados */}
                 <Select
-                    options={opcionesProductos}
-                    onChange={handleSelectProducto}
-                    placeholder="Buscar producto..."
-                    isClearable
-                    className="w-full"
-                  />
+                  options={opcionesProductos} // Opciones dinámicas basadas en el pedido seleccionado
+                  onChange={(selectedOption) => setProductoId(selectedOption ? selectedOption.value : "")} // Manejo del estado seleccionado
+                  placeholder="Buscar producto..."
+                  isClearable
+                />
                 </div>
                 <br></br>
                 <div className="flex space-x-4">
@@ -335,6 +397,7 @@ export default function Dev_Pedidos() {
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
                     placeholder="Cantidad"
+                    min="1"
                     className="block w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                   <input

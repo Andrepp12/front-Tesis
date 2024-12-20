@@ -199,7 +199,7 @@ const DevolucionModal = ({ isOpen, onClose, solicitudId, onDevolucionCreated }) 
               placeholder="Cantidad" 
               value={cantidad} 
               onChange={(e) => setCantidad(parseInt(e.target.value))}
-              min="0"
+              min="1"
               className="block w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
             

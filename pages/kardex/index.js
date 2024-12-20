@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 import Select from 'react-select';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 export default function Movimientos() {
@@ -17,6 +16,11 @@ export default function Movimientos() {
   const [filtroProducto, setFiltroProducto] = useState(null); // Estado para el filtro de producto
   const [filtroStand, setFiltroStand] = useState(null);
   const [stands, setStands] = useState([]); // Opciones de stands
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(15); // Movimientos por página
+  const [filtroAnio, setFiltroAnio] = useState("");
+  const [filtroMes, setFiltroMes] = useState("");
+  const [filtroDia, setFiltroDia] = useState("");
 
   const contentRef = useRef();
 
@@ -57,37 +61,26 @@ console.log(title);
   };
 
  
-  // Obtener una lista única de nombres de productos para el filtro
-  const productosUnicos = [...new Set(movimientos.map((movimiento) => movimiento.producto.nombre))];
+  // Generar dinámicamente opciones para los filtros
+  const anios = [...new Set(movimientos.map((mov) => new Date(mov.fecha_movimiento).getFullYear()))];
+  const meses = [...new Set(movimientos.map((mov) => new Date(mov.fecha_movimiento).getMonth() + 1))];
+  const dias = [...new Set(movimientos.map((mov) => new Date(mov.fecha_movimiento).getDate()))];
 
-  // Crear opciones para react-select
-  const opcionesProducto = [
-    { value: '', label: 'Todos los Productos' },
-    ...productosUnicos.map((producto) => ({ value: producto, label: producto }))
-  ];
   const opcionesStand = [
-    { value: '', label: 'Todos los Stands' },
-    ...stands.map((stand) => ({ value: stand.id, label: stand.nombre }))
+    { value: "", label: "Todos los Stands" },
+    ...stands.map((stand) => ({ value: stand.id, label: stand.nombre })),
   ];
-  
 
-  // Filtrar movimientos según el producto seleccionado
-  // const movimientosFiltrados = filtroProducto && filtroProducto.value
-  //   ? movimientos.filter((movimiento) => movimiento.producto.nombre === filtroProducto.value)
-  //   : movimientos;
-
-  // Filtrar movimientos según el stand seleccionado
-  const movimientosFiltrados = movimientos
-    .filter((movimiento) =>
-      filtroProducto && filtroProducto.value
-        ? movimiento.producto.nombre === filtroProducto.value
-        : true
-    )
-    .filter((movimiento) =>
-      filtroStand && filtroStand.value
-        ? movimiento.stand === filtroStand.value
-        : true
+  // Filtrar movimientos según stand, año, mes y día
+  const movimientosFiltrados = movimientos.filter((mov) => {
+    const fecha = new Date(mov.fecha_movimiento);
+    return (
+      (!filtroStand || mov.stand === parseInt(filtroStand)) &&
+      (!filtroAnio || fecha.getFullYear() === parseInt(filtroAnio)) &&
+      (!filtroMes || fecha.getMonth() + 1 === parseInt(filtroMes)) &&
+      (!filtroDia || fecha.getDate() === parseInt(filtroDia))
     );
+  });
   
 
   // Calcular el stock acumulado para cada movimiento
@@ -135,6 +128,22 @@ console.log(title);
         console.error('Error al obtener los stands:', error);
       }
     };
+
+    const fetchData = async () => {
+      try {
+        const [movResponse, standsResponse] = await Promise.all([
+          axiosInstance.get("gestion/movimientos/"),
+          axiosInstance.get("gestion/stands/"),
+        ]);
+
+        setMovimientos(movResponse.data);
+        setStands(standsResponse.data);
+      } catch (error) {
+        console.error("Error al cargar los datos:", error);
+      }
+    };
+
+    fetchData();
   
     fetchStands();
     fetchMovimientos();
@@ -199,6 +208,16 @@ console.log(title);
     setTipoMovId('');
   };
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentMovimientos = movimientosFiltrados.slice(indexOfFirstItem, indexOfLastItem);
+
+  const totalPages = Math.ceil(movimientosFiltrados.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Movimientos</h1>
@@ -219,67 +238,118 @@ console.log(title);
       </button>
 
 
-      {/* Tabla de Movimientos */}
-      <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-6">
-        
-        <div className="flex space-x-4">
-          <label className="block text-sm font-medium text-gray-700">Filtrar por Producto:</label>
-          <Select
-            value={filtroProducto}
-            onChange={setFiltroProducto}
-            options={opcionesProducto}
-            className="mt-1"
-            isClearable
-            placeholder="Selecciona un producto"
-          />
-        
-          <label className="block text-sm font-medium text-gray-700">Filtrar por Stand:</label>
-          <Select
+      {/* Filtros */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {/* Filtro Stand */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Stand</label>
+          <select
             value={filtroStand}
-            onChange={setFiltroStand}
-            options={opcionesStand}
-            className="mt-1"
-            isClearable
-            placeholder="Selecciona un stand"
-          />
+            onChange={(e) => setFiltroStand(e.target.value)}
+            className="block w-full px-3 py-2 border rounded-md"
+          >
+            {opcionesStand.map((stand) => (
+              <option key={stand.value} value={stand.value}>
+                {stand.label}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div ref={contentRef} style={{ padding: 20, backgroundColor: '#f5f5f5' }}>
-        {/* Tabla de movimientos con stock acumulado */}
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        {/* Filtro Año */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Año</label>
+          <select
+            value={filtroAnio}
+            onChange={(e) => setFiltroAnio(e.target.value)}
+            className="block w-full px-3 py-2 border rounded-md"
+          >
+            <option value="">Todos los Años</option>
+            {anios.map((anio) => (
+              <option key={anio} value={anio}>
+                {anio}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filtro Mes */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Mes</label>
+          <select
+            value={filtroMes}
+            onChange={(e) => setFiltroMes(e.target.value)}
+            className="block w-full px-3 py-2 border rounded-md"
+          >
+            <option value="">Todos los Meses</option>
+            {meses.map((mes) => (
+              <option key={mes} value={mes}>
+                {mes.toString().padStart(2, "0")}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filtro Día */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Día</label>
+          <select
+            value={filtroDia}
+            onChange={(e) => setFiltroDia(e.target.value)}
+            className="block w-full px-3 py-2 border rounded-md"
+          >
+            <option value="">Todos los Días</option>
+            {dias.map((dia) => (
+              <option key={dia} value={dia}>
+                {dia.toString().padStart(2, "0")}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Tabla de Movimientos */}
+      <div className="overflow-x-auto shadow-md">
+        <table className="w-full text-sm text-left text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400">
             <tr>
-              <th scope="col" className="px-6 py-3">Producto</th>
-              <th scope="col" className="px-6 py-3">Tipo de Movimiento</th>
-              <th scope="col" className="px-6 py-3">Código de Operación</th>
-              <th scope="col" className="px-6 py-3">Cantidad</th>
-              <th scope="col" className="px-6 py-3">Fecha</th>
-              {filtroProducto && filtroProducto.value && (
-                <th scope="col" className="px-6 py-3">Stock</th>
-              )}
+                <th scope="col" className="px-6 py-3">Producto</th>
+                <th scope="col" className="px-6 py-3">Código</th>
+                <th scope="col" className="px-6 py-3">Cantidad</th>
+                <th scope="col" className="px-6 py-3">Tipo de movimiento</th>
+                <th scope="col" className="px-6 py-3">Transacción</th>
+                <th scope="col" className="px-6 py-3">Fecha</th>
+              {/* <th scope="col" className="px-6 py-3">Stand</th> */}
             </tr>
           </thead>
           <tbody>
-            {movimientosConStock
-              .sort((a, b) => new Date(a.fecha_movimiento) - new Date(b.fecha_movimiento))
-              .map((movimiento) => (
-                <tr
-                  key={movimiento.id}
-                  className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
-                >
-                  <td className="px-6 py-4">{movimiento.producto.nombre}</td>
-                  <td className="px-6 py-4">{movimiento.tipo_mov.nombre}</td>
-                  <td className="px-6 py-4">{movimiento.codigo_trans ?? '-'}</td>
-                  <td className="px-6 py-4">{movimiento.cantidad}</td>
-                  <td className="px-6 py-4">{movimiento.fecha_movimiento}</td>
-                  {filtroProducto && filtroProducto.value && (
-                    <td className="px-6 py-4">{movimiento.stock}</td>
-                  )}
-                </tr>
+            {movimientosFiltrados.map((mov) => (
+              <tr key={mov.id} className="bg-white border-b">
+                <td className="px-6 py-4">{mov.producto.codigo} / {mov.producto.nombre} / {mov.producto.talla}</td>
+                <td className="px-6 py-4">{mov.producto.codigo}</td>
+                <td className="px-6 py-4">{mov.cantidad}</td>
+                <td className="px-6 py-4">{mov.tipo_mov.nombre}</td>
+                <td className="px-6 py-4">{mov.codigo_trans}</td>
+                <td className="px-6 py-4">{mov.fecha_movimiento}</td>
+                {/* <td className="px-6 py-4">{mov.stand}</td> */}
+              </tr>
             ))}
           </tbody>
         </table>
-        </div>
+      </div>
+      {/* Paginación */}
+      <div className="flex justify-center items-center mt-4 space-x-2">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <button
+            key={page}
+            onClick={() => handlePageChange(page)}
+            className={`px-3 py-1 border rounded ${
+              page === currentPage ? "bg-blue-500 text-white" : "bg-white text-gray-700"
+            }`}
+          >
+            {page}
+          </button>
+        ))}
       </div>
 
       {/* Modal para agregar movimiento */}

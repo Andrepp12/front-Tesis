@@ -234,13 +234,13 @@ export default function Dev_Solicitudes() {
     <div className="min-h-screen dark:bg-gray-500 p-6">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Devoluciones</h1>
       {error && <p className="text-red-500 text-center">{error}</p>}
-      <button
+      {/* <button
         type="button"
         onClick={() => setShowModal(true)}
         className="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
       >
         + Agregar Devolucion
-      </button>
+      </button> */}
 
       {/* Modal para agregar devolucion */}
       {showModal && (
