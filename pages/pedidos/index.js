@@ -113,7 +113,10 @@ export default function Pedidos() {
   
       // Ejecutar todas las promesas de los detalles y actualización de stock
       await Promise.all(detallesPromises);
-  
+      
+      setProductoId('');
+      setCantidad('1');
+      setPrecioUnitario('');
       // Actualizar la lista de pedidos
       setPedidos([...pedidos, pedidoResponse.data]);
   
@@ -169,22 +172,32 @@ export default function Pedidos() {
     setError('');
   };
 
-  // Añadir el producto seleccionado a la lista de productos
   const agregarProducto = () => {
     if (productoId && cantidad && precioUnitario) {
       const productoSeleccionado = productos.find((p) => p.id === parseInt(productoId));
-
+  
       if (productoSeleccionado) {
-        setProductosSeleccionados([
-          ...productosSeleccionados,
+        // Verificar si el producto ya ha sido agregado
+        const existeProducto = productosSeleccionados.some((p) => p.productoId === productoId);
+  
+        if (existeProducto) {
+          setError(`El producto "${productoSeleccionado.nombre}" ya ha sido agregado.`);
+          return;
+        }
+        console.log(productoSeleccionado)
+  
+        setProductosSeleccionados((prev) => [
+          ...prev,
           {
             productoId,
             cantidad,
             nombre: productoSeleccionado.nombre,
             codigo: productoSeleccionado.codigo,
+            talla: productoSeleccionado.talla,
             precio_unitario: precioUnitario,
           },
         ]);
+  
         // Limpiar después de agregar
         setProductoId('');
         setCantidad('1');
@@ -195,6 +208,7 @@ export default function Pedidos() {
       setError('Por favor, selecciona un producto y la cantidad.');
     }
   };
+  
 
   // Eliminar un producto seleccionado
   const eliminarProducto = (index) => {
@@ -380,7 +394,7 @@ export default function Pedidos() {
                     <tbody>
                       {productosSeleccionados.map((detalle, index) => (
                         <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                          <td className="px-6 py-4">{detalle.nombre}</td>
+                          <td className="px-6 py-4">{detalle.nombre} - {detalle.talla}</td>
                           <td className="px-6 py-4">{detalle.cantidad}</td>
                           <td className="px-6 py-4">{detalle.precio_unitario}</td>
                           <td className="px-6 py-4">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../utils/axiosConfig';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 export default function Existencias() {
   const [productos, setProductos] = useState([]);
@@ -254,7 +254,7 @@ export default function Existencias() {
   return (
     <div className="min-h-screen dark:bg-gray-500 p-6">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">Lista de Existencias</h1>
-      {error && <p className="text-red-500 text-center">{error}</p>}
+      
       <button
         type="button"
         onClick={openCreateModal} // Mostrar el modal al hacer clic

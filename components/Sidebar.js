@@ -129,14 +129,14 @@ export default function Sidebar() {
                         Pedidos
                       </a>
                     </li>
-                    {/* <li>
+                    <li>
                       <a
                         href="/devoluciones/dev_solicitudes"
                         className="text-gray-900 dark:text-white hover:underline"
                       >
                         Solicitudes
                       </a>
-                    </li> */}
+                    </li>
                     <li>
                       <a
                         href="/devoluciones/dev_ventas"

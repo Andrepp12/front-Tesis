@@ -99,29 +99,33 @@ export default function Movimientos() {
   };
 
   // Generar PDF
-  const generarPDF = () => {
-    const doc = new jsPDF("landscape");
-    doc.setFontSize(14);
-  
-    // Título dinámico basado en el filtro de producto
-    const titulo = filtroProducto
-      ? `Kardex del Producto: ${filtroProducto.value}`
-      : "Movimientos de Ventas y Devoluciones";
-  
-    doc.text(titulo, 10, 10); // Agregar el título al PDF
-  
-    const headers = [
-      "Producto",
-      "Código",
-      "Cantidad",
-      "Tipo de movimiento",
-      "Transacción",
-      "Fecha",
-      "Stand",
-      "Frecuencia Acumulada",
-    ];
-  
-    const data = subgruposConFrecuencia.flat().map((mov) => [
+const generarPDF = () => {
+  const doc = new jsPDF("landscape");
+  doc.setFontSize(14);
+
+  // Título dinámico basado en el filtro de producto
+  const titulo = filtroProducto
+    ? `Kardex del Producto: ${filtroProducto.value}`
+    : "Movimientos de Ventas y Devoluciones";
+
+  doc.text(titulo, 10, 10); // Agregar el título al PDF
+
+  const headers = [
+    "Producto",
+    "Código",
+    "Cantidad",
+    "Tipo de movimiento",
+    "Transacción",
+    "Fecha",
+    "Stand",
+    "Frecuencia Acumulada",
+  ];
+
+  // Filtrar las filas con cantidad > 0 antes de mapear
+  const data = subgruposConFrecuencia
+    .flat()
+    .filter((mov) => mov.cantidad > 0) // Filtrar movimientos con cantidad mayor a 0
+    .map((mov) => [
       `${mov.producto.codigo} / ${mov.producto.nombre} / ${mov.producto.talla}`,
       mov.producto.codigo,
       mov.cantidad,
@@ -131,18 +135,19 @@ export default function Movimientos() {
       mov.stand?.nombre || "-",
       mov.frecuenciaAcumulada,
     ]);
-  
-    // Generar tabla con autoTable
-    doc.autoTable({
-      head: [headers],
-      body: data,
-      startY: 20, // Margen superior para evitar el título
-      styles: { fontSize: 8 }, // Tamaño de fuente para datos
-      headStyles: { fillColor: [41, 128, 185] }, // Color del encabezado
-    });
-  
-    doc.save("movimientos.pdf");
-  };
+
+  // Generar tabla con autoTable
+  doc.autoTable({
+    head: [headers],
+    body: data,
+    startY: 20, // Margen superior para evitar el título
+    styles: { fontSize: 8 }, // Tamaño de fuente para datos
+    headStyles: { fillColor: [41, 128, 185] }, // Color del encabezado
+  });
+
+  doc.save("movimientos.pdf");
+};
+
   
   
 
@@ -193,28 +198,30 @@ export default function Movimientos() {
             </tr>
             </thead>
             <tbody>
-            {currentItems.map((mov) => (
-                <tr
-                key={mov.id}
-                className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
-                >
-                <td className="px-6 py-4">
-                    {mov.producto.codigo} / {mov.producto.nombre} / {mov.producto.talla}
-                </td>
-                <td className="px-6 py-4">{mov.producto.codigo}</td>
-                <td className="px-6 py-4">{mov.cantidad}</td>
-                <td className="px-6 py-4">{mov.tipo_mov.nombre}</td>
-                <td className="px-6 py-4">{mov.codigo_trans}</td>
-                <td className="px-6 py-4">{mov.fecha_movimiento}</td>
-                {/* <td className="px-6 py-4">{mov.stand || "-"}</td> */}
-                {filtroProducto && (
-                    <td className="px-6 py-4">{mov.frecuenciaAcumulada}</td>
-                )}
-                </tr>
-            ))}
+              {currentItems
+                .filter((mov) => mov.cantidad > 0)  // Filtrar filas con cantidad > 0
+                .map((mov) => (
+                  <tr
+                    key={mov.id}
+                    className="dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-500"
+                  >
+                    <td className="px-6 py-4">
+                      {mov.producto.codigo} / {mov.producto.nombre} / {mov.producto.talla}
+                    </td>
+                    <td className="px-6 py-4">{mov.producto.codigo}</td>
+                    <td className="px-6 py-4">{mov.cantidad}</td>
+                    <td className="px-6 py-4">{mov.tipo_mov.nombre}</td>
+                    <td className="px-6 py-4">{mov.codigo_trans}</td>
+                    <td className="px-6 py-4">{mov.fecha_movimiento}</td>
+                    {filtroProducto && (
+                      <td className="px-6 py-4">{mov.frecuenciaAcumulada}</td>
+                    )}
+                  </tr>
+                ))}
             </tbody>
+
         </table>
-        </div>
+      </div>
 
       {/* Paginación */}
       <div className="flex justify-center items-center mt-4 space-x-2">
